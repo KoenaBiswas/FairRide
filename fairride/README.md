@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # fairride
 
 A new Flutter project.
@@ -15,3 +16,10 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+<<<<<<< HEAD
+# Fairride
+=======
+# FairRide---Campus-Carpool
+>>>>>>> 564f1c3d466dfc8d47de3621dc451df1836b0e2a
+>>>>>>> 89306fd490192d84685fd9725dec01156fbd1690
