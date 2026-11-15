@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "221862877706",
+    "project_id": "fareride-d30a8",
+    "storage_bucket": "fareride-d30a8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221862877706:android:9f377d0f6726451b08ddf3",
+        "android_client_info": {
+          "package_name": "com.example.fairride"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "221862877706-bd8nqvo48imagprlldqhlhcjdl8u3p96.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.fairride",
+            "certificate_hash": "3d2db1aac22d8ead19a7bcf9723e9909284334f9"
+          }
+        },
+        {
+          "client_id": "221862877706-3s2cpeissmbiavpjb1208r39dgl3vh6a.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvkcQRUijNOdXBfd51XMQgBvZ8rugKrHc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "221862877706-3s2cpeissmbiavpjb1208r39dgl3vh6a.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

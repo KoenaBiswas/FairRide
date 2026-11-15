@@ -25,12 +25,15 @@ class FareRideLandingScreen extends StatelessWidget {
                   Positioned(
                     top: 25,
                     right: 24,
-                    child: _bubble(Icons.location_on_rounded, 'Downtown'),
+                    child: _bubble(
+                      Icons.location_on_rounded,
+                      'Your destination',
+                    ),
                   ),
                   Positioned(
                     bottom: 33,
                     left: 18,
-                    child: _bubble(Icons.school_rounded, 'Campus'),
+                    child: _bubble(Icons.trip_origin_rounded, 'Your pickup'),
                   ),
                   Container(
                     width: 154,

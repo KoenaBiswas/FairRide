@@ -8,37 +8,51 @@ class FareRideRequestRideScreen extends StatefulWidget {
 }
 
 class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
-  final _from = TextEditingController();
-  final _to = TextEditingController();
-  @override
-  void dispose() {
-    _from.dispose();
-    _to.dispose();
-    super.dispose();
-  }
+  LocationChoice? _pickup;
+  LocationChoice? _destination;
+  String? _busyRideId;
 
-  void _request() {
-    if (_from.text.trim().isEmpty || _to.text.trim().isEmpty) {
-      fareRideSnack(context, 'Enter your pickup and destination first.');
+  Future<void> _request(Ride ride) async {
+    if (_pickup == null) {
+      fareRideSnack(
+        context,
+        'Choose your pickup from the place options or use your location.',
+      );
       return;
     }
-    fareRideSnack(context, 'Ride request sent.');
-    Navigator.pushNamed(context, FareRideRoutes.fareSplit);
+    setState(() => _busyRideId = ride.id);
+    try {
+      await RideService.instance.requestToJoin(
+        rideId: ride.id,
+        pickupName: _pickup!.name,
+        pickupLat: _pickup!.latitude,
+        pickupLng: _pickup!.longitude,
+      );
+      if (mounted) {
+        fareRideSnack(context, 'Request sent to ${ride.driverName}.');
+      }
+    } catch (error) {
+      if (mounted) {
+        fareRideSnack(context, 'Could not request this ride: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _busyRideId = null);
+    }
   }
 
-  void _selectRide() {
-    Navigator.pushNamed(context, FareRideRoutes.fareSplit);
+  Future<void> _cancelRequest(String rideId) async {
+    try {
+      await RideService.instance.cancelRequest(rideId);
+      if (mounted) fareRideSnack(context, 'Ride request cancelled.');
+    } catch (error) {
+      if (mounted) fareRideSnack(context, '$error');
+    }
   }
 
   @override
   Widget build(BuildContext context) => FareRidePage(
     title: 'Find a ride',
     navigationIndex: 1,
-    bottom: FareRidePrimaryButton(
-      label: 'Request this ride',
-      icon: Icons.arrow_forward_rounded,
-      onPressed: _request,
-    ),
     child: ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       children: [
@@ -52,194 +66,142 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
         ),
         const SizedBox(height: 7),
         const Text(
-          'Find a seat on a route that works for you.',
+          'Search for any destination. Choose a match or use your current location.',
           style: TextStyle(color: FareRideColors.muted),
         ),
-        const SizedBox(height: 20),
-        FareRideField(
-          label: 'Pickup location',
-          hint: 'Enter pickup point',
-          icon: Icons.trip_origin,
-          controller: _from,
-        ),
-        const SizedBox(height: 12),
-        FareRideField(
+        const SizedBox(height: 18),
+        LocationPickerField(
           label: 'Destination',
-          hint: 'Where are you going?',
-          icon: Icons.location_on_outlined,
-          controller: _to,
+          onSelected: (place) => setState(() => _destination = place),
         ),
         const SizedBox(height: 12),
-        FareRideCard(
-          child: Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                color: FareRideColors.green,
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Travel date',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  final d = await showDatePicker(
-                    context: context,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 90)),
-                    initialDate: DateTime.now(),
-                  );
-                  if (d != null && context.mounted) {
-                    fareRideSnack(context, 'Travel date selected.');
-                  }
-                },
-                child: const Text('Today'),
-              ),
-            ],
-          ),
+        LocationPickerField(
+          label: 'Your pickup location',
+          onSelected: (place) => setState(() => _pickup = place),
         ),
-        const SizedBox(height: 23),
-        const FareRideSectionTitle(
-          'Available rides',
-          trailing: Text(
-            '2 found',
-            style: TextStyle(fontSize: 12, color: FareRideColors.muted),
-          ),
-        ),
-        const SizedBox(height: 12),
-        _AvailableRideCard(
-          name: 'Maya R.',
-          rating: '4.9',
-          time: '5:30 PM',
-          seats: '2 seats left',
-          price: '\$8.50',
-          onTap: _selectRide,
-        ),
+        const SizedBox(height: 22),
+        const FareRideSectionTitle('Available rides'),
         const SizedBox(height: 10),
-        _AvailableRideCard(
-          name: 'Jordan K.',
-          rating: '4.8',
-          time: '6:10 PM',
-          seats: '1 seat left',
-          price: '\$7.00',
-          onTap: _selectRide,
-        ),
-      ],
-    ),
-  );
-}
-
-class _AvailableRideCard extends StatelessWidget {
-  const _AvailableRideCard({
-    required this.name,
-    required this.rating,
-    required this.time,
-    required this.seats,
-    required this.price,
-    required this.onTap,
-  });
-  final String name, rating, time, seats, price;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(20),
-    child: FareRideCard(
-      child: Column(
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: FareRideColors.mint,
-                child: Text(
-                  name[0],
-                  style: const TextStyle(
-                    color: FareRideColors.greenDark,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 14,
-                          color: Color(0xFFE6A72F),
-                        ),
-                        Text(
-                          ' $rating · $seats',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: FareRideColors.muted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                price,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  color: FareRideColors.greenDark,
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            children: [
-              const Icon(
-                Icons.schedule_rounded,
-                size: 17,
-                color: FareRideColors.green,
-              ),
-              const SizedBox(width: 7),
-              Text(
-                'Departs $time',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: FareRideColors.muted,
-                ),
-              ),
-              const Spacer(),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+        if (_destination == null)
+          const FareRideCard(
+            child: Text(
+              'Choose a destination above to see rides ending nearby.',
+            ),
+          )
+        else
+          StreamBuilder<List<Ride>>(
+            stream: RideService.instance.watchOpenRides(
+              nearLat: _destination!.latitude,
+              nearLng: _destination!.longitude,
+              radiusKm: 20,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const FareRideCard(
+                  child: Text('Unable to load rides. Please try again.'),
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final rides = snapshot.data!;
+              if (rides.isEmpty) {
+                return const FareRideCard(
+                  child: Text('No open rides found near this destination.'),
+                );
+              }
+              return Column(
                 children: [
-                  const Text(
-                    'Select ride',
-                    style: TextStyle(
-                      color: FareRideColors.green,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  for (final ride in rides)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: FareRideCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.alt_route,
+                                  color: FareRideColors.green,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${ride.startName} → ${ride.destName}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  formatRupees(ride.totalFare),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: FareRideColors.greenDark,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              'Driver: ${ride.driverName} · ${ride.seatsAvailable} seats available',
+                              style: const TextStyle(
+                                color: FareRideColors.muted,
+                              ),
+                            ),
+                            Text(
+                              'Departs ${DateFormat.yMMMd().add_jm().format(ride.departureTime)}',
+                              style: const TextStyle(
+                                color: FareRideColors.muted,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            StreamBuilder<RideRequest?>(
+                              stream: RideService.instance.watchMyRequest(
+                                ride.id,
+                              ),
+                              builder: (context, request) {
+                                final status = request.data?.status;
+                                final isActive =
+                                    status == RequestStatus.pending ||
+                                    status == RequestStatus.accepted;
+                                return Align(
+                                  alignment: Alignment.centerRight,
+                                  child: isActive
+                                      ? OutlinedButton(
+                                          onPressed:
+                                              status == RequestStatus.accepted
+                                              ? null
+                                              : () => _cancelRequest(ride.id),
+                                          child: Text(
+                                            status == RequestStatus.accepted
+                                                ? 'Accepted'
+                                                : 'Cancel request',
+                                          ),
+                                        )
+                                      : FilledButton(
+                                          onPressed: _busyRideId != null
+                                              ? null
+                                              : () => _request(ride),
+                                          child: Text(
+                                            _busyRideId == ride.id
+                                                ? 'Sending…'
+                                                : 'Request seat',
+                                          ),
+                                        ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 15,
-                    color: FareRideColors.green,
-                  ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
-        ],
-      ),
+      ],
     ),
   );
 }

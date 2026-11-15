@@ -1,0 +1,223 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+/// Error with a message that is safe to show to the user.
+class AuthFailure implements Exception {
+  AuthFailure(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
+class AuthService {
+  AuthService._();
+  static final AuthService instance = AuthService._();
+
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Stream<User?> get authChanges => _auth.userChanges();
+
+  /// Live stream of users/{uid}.
+  Stream<DocumentSnapshot<Map<String, dynamic>>> userDoc(String uid) =>
+      _db.collection('users').doc(uid).snapshots();
+
+  /// Creates the Auth account and the Firestore profile.
+  /// If the profile write fails, the new Auth account is removed again so
+  /// the user is never left half-registered.
+  Future<void> signUp({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String role, // 'rider' or 'driver'
+    String licenseNumber = '',
+    String vehicleNumber = '',
+    String vehicleModel = '',
+  }) async {
+    UserCredential cred;
+    try {
+      cred = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(_message(e));
+    }
+
+    final user = cred.user!;
+    try {
+      await user.updateDisplayName(name.trim());
+      await _db.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'name': name.trim(),
+        'email': email.trim().toLowerCase(),
+        'phone': phone.trim(),
+        'role': role,
+        'verificationStatus': role == 'driver'
+            ? 'pending_review'
+            : 'not_required',
+        'createdAt': FieldValue.serverTimestamp(),
+        if (role == 'driver') ...{
+          'licenseNumber': licenseNumber.trim(),
+          'vehicleNumber': vehicleNumber.trim(),
+          'vehicleModel': vehicleModel.trim(),
+        },
+      });
+      await user.sendEmailVerification();
+    } catch (e) {
+      debugPrint('Profile write failed: $e');
+      try {
+        await _db.collection('users').doc(user.uid).delete();
+      } catch (_) {}
+      try {
+        await user.delete();
+      } catch (_) {}
+      final code = e is FirebaseException ? e.code : 'unknown';
+      throw AuthFailure(
+        'Could not save your profile ($code). '
+        'Check that Firestore is created and its rules allow writes.',
+      );
+    }
+  }
+
+  /// Signs in, then checks the account really has the chosen role.
+  Future<void> signIn({
+    required String email,
+    required String password,
+    required String expectedRole,
+  }) async {
+    UserCredential cred;
+    try {
+      cred = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(_message(e));
+    }
+
+    try {
+      final snap = await _db.collection('users').doc(cred.user!.uid).get();
+      final role = snap.data()?['role'] as String?;
+      if (role == null) {
+        await _auth.signOut();
+        throw AuthFailure('Account profile not found. Please sign up again.');
+      }
+      if (role != expectedRole) {
+        await _auth.signOut();
+        throw AuthFailure(
+          'This account is registered as a $role. '
+          'Switch to "${role[0].toUpperCase()}${role.substring(1)}" to log in.',
+        );
+      }
+    } on FirebaseException {
+      await _auth.signOut();
+      throw AuthFailure('Could not load your profile. Check your connection.');
+    }
+  }
+
+  Future<void> signOut() => _auth.signOut();
+
+  Future<void> reloadUser() async => _auth.currentUser?.reload();
+
+  Future<void> resendVerification() async =>
+      _auth.currentUser?.sendEmailVerification();
+
+  /// Google users select their role on the sign-in form if they are new.
+  /// Existing profiles retain their stored role.
+  Future<void> signInWithGoogle({required String newUserRole}) async {
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      final result = await _auth.signInWithCredential(credential);
+      final user = result.user!;
+      final profile = _db.collection('users').doc(user.uid);
+      if (!(await profile.get()).exists) {
+        await profile.set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'FareRide user',
+          'email': user.email ?? '',
+          'phone': '',
+          'role': newUserRole,
+          'verificationStatus': newUserRole == 'driver'
+              ? 'pending_review'
+              : 'not_required',
+          'createdAt': FieldValue.serverTimestamp(),
+          if (newUserRole == 'driver') ...{
+            'licenseNumber': '',
+            'vehicleNumber': '',
+            'vehicleModel': '',
+          },
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'operation-not-allowed') {
+        throw AuthFailure(
+          'Google sign-in is not enabled in Firebase Authentication > Sign-in method.',
+        );
+      }
+      throw AuthFailure(_message(e));
+    } on PlatformException catch (e) {
+      debugPrint('Google Sign-In failed: ${e.code} ${e.message}');
+      final detail = '${e.code} ${e.message}'.toLowerCase();
+      if (detail.contains('10') ||
+          detail.contains('developer_error') ||
+          detail.contains('sign_in_failed')) {
+        throw AuthFailure(
+          'Google Sign-In is missing Android OAuth setup. Add the Android app SHA-1 in Firebase Project settings, enable Google sign-in, then replace google-services.json with the newly downloaded file.',
+        );
+      }
+      if (detail.contains('network')) {
+        throw AuthFailure(
+          'Google Sign-In could not reach the network. Try again.',
+        );
+      }
+      throw AuthFailure('Google Sign-In failed (${e.code}). Please try again.');
+    } catch (_) {
+      await _auth.signOut();
+      throw AuthFailure(
+        'Could not create your Google profile. Check your connection and Firestore rules.',
+      );
+    }
+  }
+
+  String _message(FirebaseAuthException e) {
+    debugPrint('FirebaseAuthException: ${e.code} ${e.message}');
+    switch (e.code) {
+      case 'invalid-email':
+        return 'That email address is not valid.';
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Incorrect email or password.';
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'weak-password':
+        return 'Password is too weak. Use at least 6 characters.';
+      case 'network-request-failed':
+        return 'No internet connection.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again in a few minutes.';
+      case 'operation-not-allowed':
+        return 'This sign-in method is not enabled. Turn it on in Firebase Authentication > Sign-in method.';
+      case 'configuration-not-found':
+      case 'api-key-not-valid':
+      case 'internal-error':
+        return 'Firebase is not set up correctly for this app (${e.code}). '
+            'Re-run flutterfire configure and check google-services.json.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      default:
+        return 'Something went wrong (${e.code}).';
+    }
+  }
+}

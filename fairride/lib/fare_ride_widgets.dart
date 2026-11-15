@@ -168,6 +168,7 @@ class FareRideField extends StatelessWidget {
     this.validator,
     this.initialValue,
     this.onChanged,
+    this.prefixText,
   });
   final String label;
   final String? hint;
@@ -177,6 +178,7 @@ class FareRideField extends StatelessWidget {
   final String? Function(String?)? validator;
   final String? initialValue;
   final ValueChanged<String>? onChanged;
+  final String? prefixText;
   @override
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
@@ -188,6 +190,7 @@ class FareRideField extends StatelessWidget {
       labelText: label,
       hintText: hint,
       prefixIcon: icon == null ? null : Icon(icon, color: FareRideColors.muted),
+      prefixText: prefixText,
     ),
   );
 }
