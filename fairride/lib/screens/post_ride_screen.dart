@@ -16,6 +16,21 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadDefaults();
+  }
+
+  Future<void> _loadDefaults() async {
+    final value = await RecentStore.instance.rideDefaults();
+    if (!mounted) return;
+    setState(() {
+      _seats = value.seats.clamp(1, 6);
+      _fare.text = value.fare.toStringAsFixed(0);
+    });
+  }
+
+  @override
   void dispose() {
     _fare.dispose();
     super.dispose();
@@ -42,6 +57,20 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
         departureTime: _departure,
         seats: _seats,
         totalFare: double.parse(_fare.text),
+      );
+      await RecentStore.instance.saveRideDefaults(
+        seats: _seats,
+        fare: double.parse(_fare.text),
+      );
+      await RecentStore.instance.savePlace(
+        label: _start!.name,
+        latitude: _start!.latitude,
+        longitude: _start!.longitude,
+      );
+      await RecentStore.instance.savePlace(
+        label: _destination!.name,
+        latitude: _destination!.latitude,
+        longitude: _destination!.longitude,
       );
       if (!mounted) return;
       Navigator.pushNamed(

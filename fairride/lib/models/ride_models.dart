@@ -17,6 +17,16 @@ class RequestStatus {
   static const cancelled = 'cancelled';
 }
 
+String requestStatusLabel(String status) => switch (status) {
+  RequestStatus.pending => 'Awaiting response',
+  RequestStatus.rejected => 'Declined',
+  RequestStatus.accepted => 'Accepted',
+  RequestStatus.pickedUp => 'Picked up',
+  RequestStatus.dropped => 'Dropped off',
+  RequestStatus.cancelled => 'Cancelled',
+  _ => status.replaceAll('_', ' '),
+};
+
 DateTime _dt(dynamic v) =>
     v is Timestamp ? v.toDate() : DateTime.fromMillisecondsSinceEpoch(0);
 double _d(dynamic v) => (v as num?)?.toDouble() ?? 0;
@@ -40,6 +50,13 @@ class Ride {
     required this.status,
     required this.riderIds,
     required this.totalFare,
+    this.roadLegKm = const [],
+    this.routeKm = 0,
+    this.vehicleModel = '',
+    this.vehicleNumber = '',
+    this.driverUpiId = '',
+    this.routeDurationMin = 0,
+    this.routeApproximate = false,
   });
 
   final String id, driverId, driverName, startName, destName, status;
@@ -47,6 +64,10 @@ class Ride {
   final DateTime departureTime;
   final int seatsTotal, seatsAvailable;
   final List<String> riderIds;
+  final List<double> roadLegKm;
+  final double routeKm, routeDurationMin;
+  final bool routeApproximate;
+  final String vehicleModel, vehicleNumber, driverUpiId;
 
   bool get isFull => seatsAvailable <= 0;
 
@@ -68,6 +89,15 @@ class Ride {
       status: m['status'] ?? RideStatus.open,
       riderIds: List<String>.from(m['riderIds'] ?? const []),
       totalFare: _d(m['totalFare']),
+      roadLegKm: List<num>.from(m['roadLegKm'] ?? const [])
+          .map((e) => e.toDouble())
+          .toList(),
+      routeKm: _d(m['routeKm']),
+      routeDurationMin: _d(m['routeDurationMin']),
+      routeApproximate: m['routeApproximate'] == true,
+      vehicleModel: m['vehicleModel'] ?? '',
+      vehicleNumber: m['vehicleNumber'] ?? '',
+      driverUpiId: m['driverUpiId'] ?? '',
     );
   }
 }
@@ -83,11 +113,14 @@ class RideRequest {
     required this.distanceToDestKm,
     required this.status,
     this.fare,
+    this.paymentStatus = 'unpaid',
+    this.utr = '',
   });
 
   final String riderId, riderName, pickupName, status;
   final double pickupLat, pickupLng, distanceToDestKm;
   final double? fare;
+  final String paymentStatus, utr;
 
   factory RideRequest.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
@@ -100,6 +133,8 @@ class RideRequest {
       distanceToDestKm: _d(m['distanceToDestKm']),
       status: m['status'] ?? RequestStatus.pending,
       fare: (m['fare'] as num?)?.toDouble(),
+      paymentStatus: m['paymentStatus'] ?? 'unpaid',
+      utr: m['utr'] ?? '',
     );
   }
 }
@@ -115,12 +150,14 @@ class RideHistoryItem {
     required this.amount,
     required this.completedAt,
     this.riders = 0,
+    this.paymentStatus = 'unpaid',
   });
 
   final String rideId, role, startName, destName; // role: 'driver' or 'rider'
   final DateTime departureTime, completedAt;
   final double amount; // rider: fare paid, driver: total collected
   final int riders;
+  final String paymentStatus;
 
   factory RideHistoryItem.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final m = doc.data() ?? {};
@@ -133,6 +170,7 @@ class RideHistoryItem {
       amount: _d(m['amount']),
       completedAt: _dt(m['completedAt']),
       riders: _i(m['riders']),
+      paymentStatus: m['paymentStatus'] ?? 'unpaid',
     );
   }
 }

@@ -176,6 +176,9 @@ class AuthTextField extends StatefulWidget {
     this.hint,
     this.action = TextInputAction.next,
     this.onSubmitted,
+    this.onChanged,
+    this.autofillHints,
+    this.focusNode,
   });
 
   final String label;
@@ -186,6 +189,9 @@ class AuthTextField extends StatefulWidget {
   final String? hint;
   final TextInputAction action;
   final VoidCallback? onSubmitted;
+  final ValueChanged<String>? onChanged;
+  final Iterable<String>? autofillHints;
+  final FocusNode? focusNode;
 
   @override
   State<AuthTextField> createState() => _AuthTextFieldState();
@@ -193,6 +199,14 @@ class AuthTextField extends StatefulWidget {
 
 class _AuthTextFieldState extends State<AuthTextField> {
   late bool _hidden = widget.obscure;
+
+  @override
+  void didUpdateWidget(covariant AuthTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.obscure != widget.obscure) {
+      _hidden = widget.obscure;
+    }
+  }
 
   OutlineInputBorder _border(Color c, [double w = 1]) => OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
@@ -217,10 +231,13 @@ class _AuthTextFieldState extends State<AuthTextField> {
           const SizedBox(height: 6),
           TextFormField(
             controller: widget.controller,
-            obscureText: _hidden,
+            focusNode: widget.focusNode,
+            autofillHints: widget.autofillHints,
+            obscureText: widget.obscure && _hidden,
             keyboardType: widget.keyboardType,
             textInputAction: widget.action,
             validator: widget.validator,
+            onChanged: widget.onChanged,
             onFieldSubmitted: (_) => widget.onSubmitted?.call(),
             style: const TextStyle(fontSize: 15, color: kInk),
             decoration: InputDecoration(

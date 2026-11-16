@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../utils/license_number.dart';
+
 /// Error with a message that is safe to show to the user.
 class AuthFailure implements Exception {
   AuthFailure(this.message);
@@ -18,12 +20,48 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   Stream<User?> get authChanges => _auth.userChanges();
 
   /// Live stream of users/{uid}.
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDoc(String uid) =>
       _db.collection('users').doc(uid).snapshots();
+
+  Future<void> createProfileForCurrentUser(String role) async {
+    if (role != 'rider' && role != 'driver') {
+      throw AuthFailure('Choose Rider or Driver to continue.');
+    }
+    final user = _auth.currentUser;
+    if (user == null) throw AuthFailure('Please sign in again.');
+    final ref = _db.collection('users').doc(user.uid);
+    final existing = await ref.get();
+    final old = existing.data() ?? <String, dynamic>{};
+    final displayName = user.displayName?.trim();
+    final email = user.email?.trim() ?? '';
+    final fallbackName = email.contains('@')
+        ? email.split('@').first
+        : 'FareRide user';
+    await ref.set({
+      'uid': user.uid,
+      'name': displayName?.isNotEmpty == true ? displayName : fallbackName,
+      'email': email,
+      'phone': old['phone'] ?? '',
+      'role': role,
+      'verificationStatus': role == 'driver'
+          ? 'pending_documents'
+          : 'not_required',
+      'createdAt': old['createdAt'] ?? FieldValue.serverTimestamp(),
+      'isAdmin': old['isAdmin'] == true,
+      if (role == 'driver') ...{
+        'licenseNumber': old['licenseNumber'] ?? '',
+        'vehicleNumber': old['vehicleNumber'] ?? '',
+        'vehicleModel': old['vehicleModel'] ?? '',
+        'licenseExpiry': old['licenseExpiry'] ?? '',
+        'upiId': old['upiId'] ?? '',
+      },
+    }, SetOptions(merge: true));
+  }
 
   /// Creates the Auth account and the Firestore profile.
   /// If the profile write fails, the new Auth account is removed again so
@@ -37,6 +75,9 @@ class AuthService {
     String licenseNumber = '',
     String vehicleNumber = '',
     String vehicleModel = '',
+    String licenseExpiry = '',
+    String upiId = '',
+    Map<String, String> documentsBase64 = const {},
   }) async {
     UserCredential cred;
     try {
@@ -58,15 +99,40 @@ class AuthService {
         'phone': phone.trim(),
         'role': role,
         'verificationStatus': role == 'driver'
-            ? 'pending_review'
+            ? 'pending_documents'
             : 'not_required',
         'createdAt': FieldValue.serverTimestamp(),
         if (role == 'driver') ...{
-          'licenseNumber': licenseNumber.trim(),
+          'licenseNumber': normalizeIndianLicenseNumber(licenseNumber),
           'vehicleNumber': vehicleNumber.trim(),
           'vehicleModel': vehicleModel.trim(),
+          'licenseExpiry': licenseExpiry,
+          'upiId': upiId.trim(),
+          'isAdmin': false,
+          'driverOnboardingComplete': false,
         },
       });
+      if (role == 'driver') {
+        for (final entry in documentsBase64.entries) {
+          if (entry.value.length > 900000) {
+            throw StateError(
+              'Encoded driver document is too large for a Firestore document.',
+            );
+          }
+          await _db
+              .collection('users')
+              .doc(user.uid)
+              .collection('documents')
+              .doc(entry.key)
+              .set({
+                'imageBase64': entry.value,
+                'uploadedAt': FieldValue.serverTimestamp(),
+              });
+        }
+        await _db.collection('users').doc(user.uid).update({
+          'verificationStatus': 'pending_review',
+        });
+      }
       await user.sendEmailVerification();
     } catch (e) {
       debugPrint('Profile write failed: $e');
@@ -120,19 +186,42 @@ class AuthService {
     }
   }
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    Object? firebaseError;
+    StackTrace? firebaseStack;
+    try {
+      await _auth.signOut();
+    } catch (error, stackTrace) {
+      firebaseError = error;
+      firebaseStack = stackTrace;
+    }
+    try {
+      await _googleSignIn.signOut();
+    } catch (error) {
+      debugPrint('Google sign-out failed: $error');
+    }
+    try {
+      await _googleSignIn.disconnect();
+    } catch (error) {
+      debugPrint('Google disconnect skipped: $error');
+    }
+    if (firebaseError != null) {
+      Error.throwWithStackTrace(firebaseError, firebaseStack!);
+    }
+  }
 
   Future<void> reloadUser() async => _auth.currentUser?.reload();
 
   Future<void> resendVerification() async =>
       _auth.currentUser?.sendEmailVerification();
 
-  /// Google users select their role on the sign-in form if they are new.
-  /// Existing profiles retain their stored role.
-  Future<void> signInWithGoogle({required String newUserRole}) async {
+  /// The auth gate collects a role for Google accounts without a complete
+  /// FareRide profile.
+  Future<String?> signInWithGoogle() async {
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return;
+      await _googleSignIn.signOut();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
@@ -140,25 +229,8 @@ class AuthService {
       );
       final result = await _auth.signInWithCredential(credential);
       final user = result.user!;
-      final profile = _db.collection('users').doc(user.uid);
-      if (!(await profile.get()).exists) {
-        await profile.set({
-          'uid': user.uid,
-          'name': user.displayName ?? 'FareRide user',
-          'email': user.email ?? '',
-          'phone': '',
-          'role': newUserRole,
-          'verificationStatus': newUserRole == 'driver'
-              ? 'pending_review'
-              : 'not_required',
-          'createdAt': FieldValue.serverTimestamp(),
-          if (newUserRole == 'driver') ...{
-            'licenseNumber': '',
-            'vehicleNumber': '',
-            'vehicleModel': '',
-          },
-        });
-      }
+      final profile = await _db.collection('users').doc(user.uid).get();
+      return profile.data()?['role'] as String?;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'operation-not-allowed') {
         throw AuthFailure(

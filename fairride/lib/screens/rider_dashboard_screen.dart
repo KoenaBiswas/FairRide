@@ -38,25 +38,6 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
               Navigator.pushNamed(context, FareRideRoutes.requestRide),
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () async {
-            try {
-              final added = await RideService.instance.seedDemoData();
-              if (context.mounted) {
-                fareRideSnack(
-                  context,
-                  added
-                      ? 'Demo rides and history added to your account.'
-                      : 'Demo data is already loaded for this account.',
-                );
-              }
-            } catch (error) {
-              if (context.mounted) fareRideSnack(context, '$error');
-            }
-          },
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('Load demo data'),
-        ),
         const SizedBox(height: 20),
         const FareRideSectionTitle('Your upcoming rides'),
         const SizedBox(height: 8),
@@ -89,6 +70,17 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text('Total fare ${formatRupees(ride.totalFare)}'),
+                          TextButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    FareRideRideDetailsScreen(rideId: ride.id),
+                              ),
+                            ),
+                            icon: const Icon(Icons.info_outline),
+                            label: const Text('Ride details'),
+                          ),
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton.icon(
@@ -160,7 +152,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  DateFormat.yMMMd().format(item.completedAt),
+                                  '${DateFormat.yMMMd().format(item.completedAt)} · Payment ${item.paymentStatus.replaceAll('_', ' ')}',
                                   style: const TextStyle(
                                     color: FareRideColors.muted,
                                   ),
@@ -176,6 +168,17 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                 ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FareRideRideDetailsScreen(
+                                      rideId: item.rideId,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text('Ride details'),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pushNamed(
@@ -226,32 +229,77 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
-        FareRidePrimaryButton(
-          label: 'Post a ride',
-          icon: Icons.add_road,
-          onPressed: () =>
-              Navigator.pushNamed(context, FareRideRoutes.postRide),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser!.uid)
+              .collection('documents')
+              .snapshots(),
+          builder: (context, docs) {
+            final documentsReady = const ['licence', 'rc', 'selfie'].every(
+              (key) =>
+                  docs.data?.docs.any(
+                    (doc) =>
+                        doc.id == key && doc.data()['imageBase64'] is String,
+                  ) ==
+                  true,
+            );
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (documentsReady)
+                  Chip(
+                    avatar: const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 18,
+                    ),
+                    label: const Text('Documents submitted'),
+                    backgroundColor: Colors.green.shade50,
+                    side: BorderSide.none,
+                  )
+                else
+                  Card(
+                    child: ListTile(
+                      title: const Text(
+                        'Upload your documents to start posting rides',
+                      ),
+                      trailing: TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FareRideDriverProfileScreen(),
+                          ),
+                        ),
+                        child: const Text('Driver profile'),
+                      ),
+                    ),
+                  ),
+                FareRidePrimaryButton(
+                  label: 'Post a ride',
+                  icon: Icons.add_road,
+                  onPressed: documentsReady
+                      ? () => Navigator.pushNamed(
+                          context,
+                          FareRideRoutes.postRide,
+                        )
+                      : null,
+                ),
+              ],
+            );
+          },
+        ),
+        TextButton.icon(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FareRideDriverProfileScreen(),
+            ),
+          ),
+          icon: const Icon(Icons.person_outline),
+          label: const Text('Driver profile and UPI'),
         ),
         const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () async {
-            try {
-              final added = await RideService.instance.seedDemoData();
-              if (context.mounted) {
-                fareRideSnack(
-                  context,
-                  added
-                      ? 'Demo rides, requests, and history added.'
-                      : 'Demo data is already loaded for this account.',
-                );
-              }
-            } catch (error) {
-              if (context.mounted) fareRideSnack(context, '$error');
-            }
-          },
-          icon: const Icon(Icons.auto_awesome),
-          label: const Text('Load demo data'),
-        ),
         const SizedBox(height: 22),
         const FareRideSectionTitle('Your active rides'),
         const SizedBox(height: 8),
@@ -283,12 +331,12 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                           '${ride.seatsAvailable}/${ride.seatsTotal} seats · ${ride.status} · ${formatRupees(ride.totalFare)}',
                         ),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.pushNamed(
+                        onTap: () => Navigator.push(
                           context,
-                          ride.status == RideStatus.inProgress
-                              ? FareRideRoutes.fareSplit
-                              : FareRideRoutes.pickupOrder,
-                          arguments: ride.id,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                FareRideRideDetailsScreen(rideId: ride.id),
+                          ),
                         ),
                       ),
                     ),
@@ -347,6 +395,17 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                 ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FareRideRideDetailsScreen(
+                                      rideId: item.rideId,
+                                    ),
+                                  ),
+                                ),
+                                child: const Text('Ride details'),
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pushNamed(

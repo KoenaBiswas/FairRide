@@ -51,6 +51,16 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                 icon: const Icon(Icons.map_outlined),
                 label: const Text('View pickup map'),
               ),
+              TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FareRideRideDetailsScreen(rideId: rideId),
+                  ),
+                ),
+                icon: const Icon(Icons.info_outline),
+                label: const Text('Ride details'),
+              ),
               const SizedBox(height: 12),
               FareRideSectionTitle(
                 'Rider requests · farthest pickup first',
@@ -90,7 +100,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${request.status}',
+                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${requestStatusLabel(request.status)}',
                                   style: const TextStyle(
                                     color: FareRideColors.muted,
                                   ),
@@ -102,6 +112,28 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                       fontWeight: FontWeight.w800,
                                     ),
                                   ),
+                                if (ride.status == RideStatus.completed) ...[
+                                  Text(
+                                    'Payment: ${request.paymentStatus.replaceAll('_', ' ')}',
+                                  ),
+                                  if (request.paymentStatus == 'marked_paid')
+                                    TextButton(
+                                      onPressed: () async {
+                                        try {
+                                          await RideService.instance
+                                              .confirmPayment(
+                                                rideId,
+                                                request.riderId,
+                                              );
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            fareRideSnack(context, '$e');
+                                          }
+                                        }
+                                      },
+                                      child: const Text('Confirm received'),
+                                    ),
+                                ],
                                 const SizedBox(height: 8),
                                 Wrap(
                                   spacing: 8,
@@ -162,7 +194,49 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                       ? null
                       : () async {
                           try {
-                            await RideService.instance.startRide(rideId);
+                            final accepted = await RideService.instance
+                                .watchRequests(rideId)
+                                .first;
+                            final pickups = accepted
+                                .where(
+                                  (r) =>
+                                      r.status == RequestStatus.accepted ||
+                                      r.status == RequestStatus.pickedUp,
+                                )
+                                .map(
+                                  (r) => ordering.RiderPickup(
+                                    r.riderId,
+                                    ordering.Point(r.pickupLat, r.pickupLng),
+                                  ),
+                                )
+                                .toList();
+                            final sorted = ordering.sortFarthestFirst(
+                              pickups,
+                              ordering.Point(ride.destLat, ride.destLng),
+                            );
+                            final stops = [
+                              LatLng(ride.startLat, ride.startLng),
+                              ...sorted.map(
+                                (p) => LatLng(p.pickup.lat, p.pickup.lng),
+                              ),
+                              LatLng(ride.destLat, ride.destLng),
+                            ];
+                            final route = await RoutingService.instance.route(
+                              stops,
+                            );
+                            await RideService.instance.startRide(
+                              rideId,
+                              roadLegKm: route.legKm,
+                              routeKm: route.totalKm,
+                              durationMin: route.durationMin,
+                              approximate: route.isApproximate,
+                            );
+                            if (route.isApproximate && context.mounted) {
+                              fareRideSnack(
+                                context,
+                                'Approximate route (offline) saved for fare estimates.',
+                              );
+                            }
                           } catch (e) {
                             if (context.mounted) fareRideSnack(context, '$e');
                           }

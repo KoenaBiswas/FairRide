@@ -2,6 +2,37 @@ import 'dart:math';
 
 double _round2(double value) => (value * 100).round() / 100;
 
+/// Allocates each road segment equally among riders still in the car.
+/// Distances are ordered farthest pickup first, followed by each leg to the
+/// next pickup and finally the destination.
+Map<String, double> calculateFares(
+  List<String> riderIds,
+  List<double> legKm,
+  double totalFare,
+) {
+  if (riderIds.isEmpty) return {};
+  if (legKm.length != riderIds.length) {
+    // Legacy/approximate rides can lack a full road-leg list.
+    return splitFare(
+      totalFare: totalFare,
+      distances: {for (var i = 0; i < riderIds.length; i++) riderIds[i]: 1},
+    );
+  }
+  final remainingDistance = List<double>.filled(riderIds.length, 0);
+  var suffix = 0.0;
+  for (var i = legKm.length - 1; i >= 0; i--) {
+    suffix += legKm[i];
+    remainingDistance[i] = suffix;
+  }
+  return splitFare(
+    totalFare: totalFare,
+    distances: {
+      for (var i = 0; i < riderIds.length; i++)
+        riderIds[i]: remainingDistance[i],
+    },
+  );
+}
+
 /// Splits route cost across riders sharing each stretch, farthest pickup first.
 /// For distances 10, 6, and 2 km with a 100 rupee total, returns 66.67,
 /// 26.67, and 6.67 respectively.

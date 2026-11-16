@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function isAdmin() { return signedIn() && me().get('isAdmin', false) == true; }
+    function canPostRide() {
+      return signedIn()
+        && me().get('verificationStatus', '') in ['pending_review', 'verified'];
+    }
+
+    match /users/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.get('isAdmin', false) == false
+        && request.resource.data.verificationStatus in ['pending_documents', 'not_required'];
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow update: if signedIn() && (
+        (request.auth.uid == uid
+          && request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)
+          && (
+            (resource.data.get('role', '') in ['rider', 'driver']
+              && request.resource.data.verificationStatus in
+                 [resource.data.verificationStatus, 'pending_documents', 'pending_review'])
+            || (!(resource.data.get('role', '') in ['rider', 'driver'])
+              && request.resource.data.role in ['rider', 'driver']
+              && request.resource.data.verificationStatus in ['pending_documents', 'not_required'])
+          ))
+        || isAdmin());
+
+      match /documents/{docId} {
+        allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+        allow write: if signedIn() && request.auth.uid == uid;
+      }
+      match /rideHistory/{rideId} {
+        allow read: if signedIn() && request.auth.uid == uid;
+        allow write: if signedIn();
+      }
+    }
+
+    match /rides/{rideId} {
+      allow read: if signedIn();
+      allow create: if canPostRide() && request.resource.data.driverId == request.auth.uid;
+      allow update: if signedIn();
+      match /requests/{riderId} {
+        allow read, write: if signedIn();
+      }
+    }
+  }
+}

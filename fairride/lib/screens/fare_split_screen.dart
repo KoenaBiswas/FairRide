@@ -1,7 +1,5 @@
 part of '../fare_ride_screens.dart';
 
-const _farePaymentUpiId = '7291098653@pthdfc';
-
 class FareRideFareSplitScreen extends StatefulWidget {
   const FareRideFareSplitScreen({super.key});
   @override
@@ -25,22 +23,27 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
     }
   }
 
-  Uri _paymentUri(double amount, String rideId) => Uri(
+  Uri _paymentUri(double amount, Ride ride) => Uri(
     scheme: 'upi',
     host: 'pay',
     queryParameters: {
-      'pa': _farePaymentUpiId,
-      'pn': 'FareRide',
+      'pa': ride.driverUpiId,
+      'pn': ride.driverName,
       'am': amount.toStringAsFixed(2),
       'cu': 'INR',
-      'tn': 'FareRide $rideId',
+      'tn':
+          'FareRide ${ride.id.length > 8 ? ride.id.substring(0, 8) : ride.id}',
     },
   );
 
-  Future<void> _pay(double amount, String rideId) async {
+  Future<void> _pay(double amount, Ride ride) async {
+    if (ride.driverUpiId.isEmpty) {
+      if (mounted) fareRideSnack(context, 'The driver has not added a UPI ID.');
+      return;
+    }
     try {
       final launched = await launchUrl(
-        _paymentUri(amount, rideId),
+        _paymentUri(amount, ride),
         mode: LaunchMode.externalApplication,
       );
       if (!launched && mounted) {
@@ -49,13 +52,6 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
     } catch (error) {
       if (mounted) fareRideSnack(context, 'Could not open a UPI app: $error');
     }
-  }
-
-  Future<void> _copyPaymentLink(double amount, String rideId) async {
-    await Clipboard.setData(
-      ClipboardData(text: _paymentUri(amount, rideId).toString()),
-    );
-    if (mounted) fareRideSnack(context, 'UPI payment link copied.');
   }
 
   @override
@@ -77,7 +73,11 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
         if (rideSnapshot.hasError) {
           return const FareRidePage(
             title: 'Fare split',
-            child: Center(child: Text('Could not load this ride.')),
+            child: Center(
+              child: Text(
+                'Could not load this ride. Check your connection and Firestore rules.',
+              ),
+            ),
           );
         }
         if (ride == null) {
@@ -138,22 +138,82 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                       ),
                     );
                   }
-                  final estimates = splitFare(
-                    totalFare: ride.totalFare,
-                    distances: {
-                      for (final rider in riders)
-                        rider.riderId: rider.distanceToDestKm,
-                    },
+                  final ordered = [...riders]
+                    ..sort(
+                      (a, b) =>
+                          b.distanceToDestKm.compareTo(a.distanceToDestKm),
+                    );
+                  final fareLegs = ride.roadLegKm.length >= ordered.length + 1
+                      ? ride.roadLegKm.skip(1).toList()
+                      : <double>[];
+                  final estimates = fareLegs.length == ordered.length
+                      ? calculateFares(
+                          ordered.map((r) => r.riderId).toList(),
+                          fareLegs,
+                          ride.totalFare,
+                        )
+                      : splitFare(
+                          totalFare: ride.totalFare,
+                          distances: {
+                            for (final rider in ordered)
+                              rider.riderId: rider.distanceToDestKm,
+                          },
+                        );
+                  final collected = riders
+                      .where((r) => r.paymentStatus == 'confirmed')
+                      .fold<double>(
+                        0,
+                        (total, r) =>
+                            total + (r.fare ?? estimates[r.riderId] ?? 0),
+                      );
+                  final pending = riders.fold<double>(
+                    0,
+                    (total, r) =>
+                        total +
+                        (r.paymentStatus == 'confirmed'
+                            ? 0
+                            : (r.fare ?? estimates[r.riderId] ?? 0)),
                   );
                   return Column(
                     children: [
+                      if (isDriver && ride.status == RideStatus.completed)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: FareRideCard(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total collected ${formatRupees(collected)}',
+                                ),
+                                Text('Outstanding ${formatRupees(pending)}'),
+                              ],
+                            ),
+                          ),
+                        ),
                       for (final rider in riders)
                         _RiderShareCard(
                           rider: rider,
                           estimate: estimates[rider.riderId] ?? 0,
                           isCurrentUser: uid == rider.riderId,
-                          onCopy: (amount) => _copyPaymentLink(amount, rideId),
-                          onPay: (amount) => _pay(amount, rideId),
+                          onPay: (amount) => _pay(amount, ride),
+                          completed: ride.status == RideStatus.completed,
+                          isDriver: isDriver,
+                          onConfirm: () => RideService.instance.confirmPayment(
+                            rideId,
+                            rider.riderId,
+                          ),
+                          paymentUri: ride.driverUpiId.isEmpty
+                              ? ''
+                              : _paymentUri(
+                                  rider.fare ?? estimates[rider.riderId] ?? 0,
+                                  ride,
+                                ).toString(),
+                          onMarkPaid: (utr) => RideService.instance.markPaid(
+                            rideId,
+                            rider.riderId,
+                            utr: utr,
+                          ),
                         ),
                     ],
                   );
@@ -177,7 +237,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
-                    'Payment opens in your installed UPI app. FareRide does not confirm or track the payment.',
+                    'FareRide cannot see your bank payment. The driver confirms receipt after checking their account.',
                     style: TextStyle(color: FareRideColors.muted, fontSize: 12),
                   ),
                 ),
@@ -194,16 +254,22 @@ class _RiderShareCard extends StatelessWidget {
     required this.rider,
     required this.estimate,
     required this.isCurrentUser,
-    required this.onCopy,
     required this.onPay,
+    required this.completed,
+    required this.isDriver,
+    required this.onConfirm,
+    required this.paymentUri,
+    required this.onMarkPaid,
   });
 
   final RideRequest rider;
   final double estimate;
   final bool isCurrentUser;
-  final ValueChanged<double> onCopy;
   final ValueChanged<double> onPay;
-
+  final bool completed, isDriver;
+  final VoidCallback onConfirm;
+  final String paymentUri;
+  final ValueChanged<String> onMarkPaid;
   @override
   Widget build(BuildContext context) {
     final amount = rider.fare ?? estimate;
@@ -224,7 +290,7 @@ class _RiderShareCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        '${rider.pickupName} · ${rider.status}',
+                        '${rider.pickupName} · ${requestStatusLabel(rider.status)}',
                         style: const TextStyle(color: FareRideColors.muted),
                       ),
                     ],
@@ -251,7 +317,68 @@ class _RiderShareCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (isCurrentUser) ...[
+            if (completed)
+              Text('Payment: ${rider.paymentStatus.replaceAll('_', ' ')}'),
+            if (completed && isDriver && rider.paymentStatus == 'marked_paid')
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: onConfirm,
+                  icon: const Icon(Icons.verified),
+                  label: const Text('Confirm received'),
+                ),
+              ),
+            if (isCurrentUser && completed) ...[
+              if (paymentUri.isNotEmpty && rider.paymentStatus != 'confirmed')
+                QrImageView(data: paymentUri, size: 190),
+              if (rider.paymentStatus == 'unpaid')
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => onPay(amount),
+                      icon: const Icon(Icons.account_balance_wallet_outlined),
+                      label: const Text('Pay with UPI app'),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        final controller = TextEditingController();
+                        final value = await showDialog<String>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Mark payment sent'),
+                            content: TextField(
+                              controller: controller,
+                              decoration: const InputDecoration(
+                                labelText: 'UTR or last 4 digits (optional)',
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text('Cancel'),
+                              ),
+                              FilledButton(
+                                onPressed: () =>
+                                    Navigator.pop(ctx, controller.text),
+                                child: const Text('I have paid'),
+                              ),
+                            ],
+                          ),
+                        );
+                        controller.dispose();
+                        if (value != null) onMarkPaid(value);
+                      },
+                      child: const Text('I have paid'),
+                    ),
+                  ],
+                ),
+              const Text(
+                'FareRide cannot see your bank payment. The driver confirms receipt after checking their account.',
+                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+              ),
+            ],
+            if (isCurrentUser && !completed) ...[
               if (!isSaved)
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
@@ -261,26 +388,9 @@ class _RiderShareCard extends StatelessWidget {
                   ),
                 ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => onCopy(amount),
-                      icon: const Icon(Icons.link),
-                      label: Text(
-                        isSaved ? 'Copy payment link' : 'Copy estimate link',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () => onPay(amount),
-                      icon: const Icon(Icons.account_balance_wallet_outlined),
-                      label: Text(isSaved ? 'Pay with UPI' : 'Pay estimate'),
-                    ),
-                  ),
-                ],
+              const Text(
+                'Payment becomes available after the driver completes the ride.',
+                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
               ),
             ],
           ],
@@ -302,6 +412,11 @@ class _RideFareChooser extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: AuthService.instance.userDoc(uid),
       builder: (context, profile) {
+        if (profile.hasError) {
+          return Center(
+            child: Text('Could not load your profile: ${profile.error}'),
+          );
+        }
         if (!profile.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -312,43 +427,45 @@ class _RideFareChooser extends StatelessWidget {
         return StreamBuilder<List<Ride>>(
           stream: rides,
           builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('Could not load rides: ${snapshot.error}'),
+              );
+            }
             if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No accepted or active rides yet. Accepted rides will show up here.',
-                ),
-              );
             }
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 const Text(
-                  'Choose a ride',
+                  'Current and recent rides',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 12),
-                for (final ride in snapshot.data!)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: FareRideCard(
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text('${ride.startName} → ${ride.destName}'),
-                        subtitle: Text(
-                          '${ride.status} · ${formatRupees(ride.totalFare)}',
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => Navigator.pushReplacementNamed(
-                          context,
-                          FareRideRoutes.fareSplit,
-                          arguments: ride.id,
+                if (snapshot.data!.isNotEmpty)
+                  for (final ride in snapshot.data!)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: FareRideCard(
+                        child: ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text('${ride.startName} → ${ride.destName}'),
+                          subtitle: Text(
+                            '${ride.status} · ${formatRupees(ride.totalFare)}',
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => Navigator.pushReplacementNamed(
+                            context,
+                            FareRideRoutes.fareSplit,
+                            arguments: ride.id,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                if (snapshot.data!.isEmpty) _RecentRideHistory(),
+                const SizedBox(height: 12),
+                const _QuickFareCalculator(),
               ],
             );
           },
@@ -356,4 +473,120 @@ class _RideFareChooser extends StatelessWidget {
       },
     );
   }
+}
+
+class _RecentRideHistory extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => StreamBuilder<List<RideHistoryItem>>(
+    stream: RideService.instance.watchHistory(limit: 1),
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return Text('Could not load ride history: ${snapshot.error}');
+      }
+      if (!snapshot.hasData) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.data!.isEmpty) {
+        return Column(
+          children: [
+            const Text('No current or previous rides yet.'),
+            TextButton(
+              onPressed: () =>
+                  Navigator.pushNamed(context, FareRideRoutes.requestRide),
+              child: const Text('Find or post a ride'),
+            ),
+          ],
+        );
+      }
+      final ride = snapshot.data!.first;
+      return FareRideCard(
+        child: ListTile(
+          title: Text('${ride.startName} → ${ride.destName}'),
+          subtitle: Text('Last ride · ${formatRupees(ride.amount)}'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.pushNamed(
+            context,
+            FareRideRoutes.fareSplit,
+            arguments: ride.rideId,
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _QuickFareCalculator extends StatefulWidget {
+  const _QuickFareCalculator();
+  @override
+  State<_QuickFareCalculator> createState() => _QuickFareCalculatorState();
+}
+
+class _QuickFareCalculatorState extends State<_QuickFareCalculator> {
+  final _total = TextEditingController(text: '100');
+  final _distances = TextEditingController(text: '10, 6, 2');
+  Map<String, double>? _shares;
+  @override
+  void dispose() {
+    _total.dispose();
+    _distances.dispose();
+    super.dispose();
+  }
+
+  void _calculate() {
+    final ds = _distances.text
+        .split(',')
+        .map((v) => double.tryParse(v.trim()))
+        .whereType<double>()
+        .toList();
+    final amount = double.tryParse(_total.text) ?? 0;
+    setState(
+      () => _shares = splitFare(
+        totalFare: amount,
+        distances: {
+          for (var i = 0; i < ds.length; i++) 'Rider ${i + 1}': ds[i],
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    title: const Text('Quick calculator'),
+    children: [
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _total,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Total fare',
+                prefixText: '₹ ',
+              ),
+            ),
+            TextField(
+              controller: _distances,
+              decoration: const InputDecoration(
+                labelText: 'Distance to destination (km, comma separated)',
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _calculate,
+                child: const Text('Calculate'),
+              ),
+            ),
+            if (_shares != null)
+              for (final entry in _shares!.entries)
+                ListTile(
+                  title: Text(entry.key),
+                  trailing: Text(formatRupees(entry.value)),
+                ),
+          ],
+        ),
+      ),
+    ],
+  );
 }

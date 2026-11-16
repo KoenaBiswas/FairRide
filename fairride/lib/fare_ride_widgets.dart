@@ -169,6 +169,9 @@ class FareRideField extends StatelessWidget {
     this.initialValue,
     this.onChanged,
     this.prefixText,
+    this.autofillHints,
+    this.textInputAction,
+    this.focusNode,
   });
   final String label;
   final String? hint;
@@ -179,11 +182,17 @@ class FareRideField extends StatelessWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final String? prefixText;
+  final Iterable<String>? autofillHints;
+  final TextInputAction? textInputAction;
+  final FocusNode? focusNode;
   @override
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
     initialValue: initialValue,
     keyboardType: keyboardType,
+    textInputAction: textInputAction,
+    focusNode: focusNode,
+    autofillHints: autofillHints,
     validator: validator,
     onChanged: onChanged,
     decoration: InputDecoration(
@@ -191,6 +200,103 @@ class FareRideField extends StatelessWidget {
       hintText: hint,
       prefixIcon: icon == null ? null : Icon(icon, color: FareRideColors.muted),
       prefixText: prefixText,
+    ),
+  );
+}
+
+/// Recent-value picker that reuses FareRideField's controller and visual style.
+class FareRideSuggestField extends StatefulWidget {
+  const FareRideSuggestField({
+    super.key,
+    required this.label,
+    required this.controller,
+    required this.suggestions,
+    this.onSelected,
+    this.onRemove,
+    this.keyboardType,
+    this.textInputAction,
+    this.autofillHints,
+    this.validator,
+    this.hint,
+  });
+  final String label;
+  final String? hint;
+  final TextEditingController controller;
+  final List<String> suggestions;
+  final ValueChanged<String>? onSelected;
+  final ValueChanged<String>? onRemove;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
+  final String? Function(String?)? validator;
+
+  @override
+  State<FareRideSuggestField> createState() => _FareRideSuggestFieldState();
+}
+
+class _FareRideSuggestFieldState extends State<FareRideSuggestField> {
+  final _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RawAutocomplete<String>(
+    textEditingController: widget.controller,
+    focusNode: _focus,
+    displayStringForOption: (option) => option,
+    optionsBuilder: (value) {
+      final query = value.text.trim().toLowerCase();
+      return widget.suggestions.where(
+        (item) => query.isEmpty || item.toLowerCase().contains(query),
+      );
+    },
+    onSelected: (value) {
+      widget.controller.text = value;
+      widget.onSelected?.call(value);
+    },
+    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
+        FareRideField(
+          label: widget.label,
+          hint: widget.hint,
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          autofillHints: widget.autofillHints,
+          validator: widget.validator,
+        ),
+    optionsViewBuilder: (context, onSelected, options) => Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 5,
+        borderRadius: BorderRadius.circular(12),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 220, maxWidth: 420),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            children: [
+              for (final option in options)
+                ListTile(
+                  dense: true,
+                  title: Text(option),
+                  trailing: widget.onRemove == null
+                      ? null
+                      : IconButton(
+                          tooltip: 'Remove suggestion',
+                          icon: const Icon(Icons.close, size: 18),
+                          onPressed: () => widget.onRemove!(option),
+                        ),
+                  onTap: () => onSelected(option),
+                ),
+            ],
+          ),
+        ),
+      ),
     ),
   );
 }

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../services/recent_store.dart';
+
 class LocationChoice {
   const LocationChoice({
     required this.name,
@@ -42,13 +44,31 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
   bool _searching = false;
   bool _locating = false;
   String? _message;
+  List<RecentPlace> _recentPlaces = const [];
+  bool _focused = false;
+  final _focusNode = FocusNode();
   int _queryVersion = 0;
 
   @override
   void dispose() {
     _debounce?.cancel();
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentPlaces();
+    _focusNode.addListener(
+      () => setState(() => _focused = _focusNode.hasFocus),
+    );
+  }
+
+  Future<void> _loadRecentPlaces() async {
+    final values = await RecentStore.instance.recentPlaces();
+    if (mounted) setState(() => _recentPlaces = values);
   }
 
   void _onChanged(String query) {
@@ -186,7 +206,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
       );
       final name = placemarks.isEmpty
           ? 'Current location'
-          : _formatPlacemark(placemarks.first);
+          : _formatShortPlacemark(placemarks.first);
       _choose(
         LocationChoice(
           name: name.isEmpty ? 'Current location' : name,
@@ -208,12 +228,34 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     }
   }
 
+  String _formatShortPlacemark(Placemark place) {
+    final parts = <String?>[place.name, place.subLocality, place.locality]
+        .whereType<String>()
+        .map((part) => part.trim())
+        .where(
+          (part) =>
+              part.isNotEmpty &&
+              !RegExp(r'^\d{6}$').hasMatch(part) &&
+              !part.contains('+'),
+        )
+        .toList();
+    final unique = <String>[];
+    for (final part in parts) {
+      if (!unique.contains(part)) unique.add(part);
+    }
+    final result = unique.join(', ');
+    return result.length > 40
+        ? '${result.substring(0, 37).trimRight()}…'
+        : result;
+  }
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       TextField(
         controller: _controller,
+        focusNode: _focusNode,
         textInputAction: TextInputAction.search,
         onChanged: _onChanged,
         onSubmitted: (value) {
@@ -244,6 +286,62 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
                 ),
         ),
       ),
+      if (_focused &&
+          (_controller.text.isEmpty ||
+              _recentPlaces.any(
+                (place) => place.label.toLowerCase().contains(
+                  _controller.text.toLowerCase(),
+                ),
+              )))
+        Card(
+          margin: const EdgeInsets.only(top: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_controller.text.isEmpty)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.my_location),
+                  title: const Text('Use my current location'),
+                  trailing: _locating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : null,
+                  onTap: _locating ? null : _useCurrentLocation,
+                ),
+              for (final place in _recentPlaces.where(
+                (place) =>
+                    _controller.text.isEmpty ||
+                    place.label.toLowerCase().contains(
+                      _controller.text.toLowerCase(),
+                    ),
+              ))
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.history),
+                  title: Text(place.label),
+                  trailing: IconButton(
+                    tooltip: 'Remove suggestion',
+                    icon: const Icon(Icons.close, size: 18),
+                    onPressed: () async {
+                      await RecentStore.instance.removePlace(place.label);
+                      await _loadRecentPlaces();
+                    },
+                  ),
+                  onTap: () => _choose(
+                    LocationChoice(
+                      name: place.label,
+                      latitude: place.latitude,
+                      longitude: place.longitude,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       if (_suggestions.isNotEmpty)
         Card(
           margin: const EdgeInsets.only(top: 4),

@@ -28,6 +28,18 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
         pickupLat: _pickup!.latitude,
         pickupLng: _pickup!.longitude,
       );
+      await RecentStore.instance.savePlace(
+        label: _pickup!.name,
+        latitude: _pickup!.latitude,
+        longitude: _pickup!.longitude,
+      );
+      if (_destination != null) {
+        await RecentStore.instance.savePlace(
+          label: _destination!.name,
+          latitude: _destination!.latitude,
+          longitude: _destination!.longitude,
+        );
+      }
       if (mounted) {
         fareRideSnack(context, 'Request sent to ${ride.driverName}.');
       }
@@ -157,6 +169,21 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FareRideRideDetailsScreen(
+                                      rideId: ride.id,
+                                    ),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.info_outline),
+                                label: const Text('Ride details'),
+                              ),
+                            ),
                             StreamBuilder<RideRequest?>(
                               stream: RideService.instance.watchMyRequest(
                                 ride.id,

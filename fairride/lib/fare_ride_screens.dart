@@ -5,6 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image/image.dart' as img;
+
+import 'dart:convert';
 
 import 'authenticate/auth_service.dart';
 import 'authenticate/auth_widgets.dart'
@@ -20,7 +27,11 @@ import 'authenticate/auth_widgets.dart'
         validateName;
 import 'models/ride_models.dart';
 import 'services/ride_service.dart';
+import 'services/routing_service.dart';
+import 'services/recent_store.dart';
+import 'logic/rider_ordering.dart' as ordering;
 import 'utils/currency.dart';
+import 'utils/license_number.dart';
 import 'authenticate/auth_wrapper.dart';
 import 'screens/pickup_map_screen.dart';
 
@@ -39,6 +50,8 @@ part 'screens/post_ride_screen.dart';
 part 'screens/request_ride_screen.dart';
 part 'screens/pickup_order_screen.dart';
 part 'screens/fare_split_screen.dart';
+part 'screens/ride_details_screen.dart';
+part 'screens/driver_profile_screen.dart';
 
 class FareRideApp extends StatelessWidget {
   const FareRideApp({super.key});
@@ -48,7 +61,7 @@ class FareRideApp extends StatelessWidget {
     title: 'FareRide',
     debugShowCheckedModeBanner: false,
     theme: _fareRideTheme,
-    home: const AuthWrapper(),
+    home: const FareRideAuthGate(),
     routes: FareRideRoutes.routes,
   );
 }
@@ -74,6 +87,6 @@ abstract final class FareRideRoutes {
     requestRide: (_) => const FareRideRequestRideScreen(),
     pickupOrder: (_) => const FareRidePickupOrderScreen(),
     fareSplit: (_) => const FareRideFareSplitScreen(),
-    authGate: (_) => const AuthWrapper(),
+    authGate: (_) => const FareRideAuthGate(),
   };
 }
