@@ -1,8 +1,7 @@
 part of '../fare_ride_screens.dart';
 
 class FareRideDriverProfileScreen extends StatefulWidget {
-  const FareRideDriverProfileScreen({super.key, this.onboardingMode = false});
-  final bool onboardingMode;
+  const FareRideDriverProfileScreen({super.key});
   @override
   State<FareRideDriverProfileScreen> createState() =>
       _FareRideDriverProfileScreenState();
@@ -11,24 +10,12 @@ class FareRideDriverProfileScreen extends StatefulWidget {
 class _FareRideDriverProfileScreenState
     extends State<FareRideDriverProfileScreen> {
   final _upi = TextEditingController();
-  final _name = TextEditingController();
-  final _phone = TextEditingController();
-  final _license = TextEditingController();
-  final _expiry = TextEditingController();
-  final _vehicleNumber = TextEditingController();
-  final _vehicleModel = TextEditingController();
   final Map<String, Uint8List> _images = {};
   bool _busy = false;
   String? _loadedUid;
   @override
   void dispose() {
     _upi.dispose();
-    _name.dispose();
-    _phone.dispose();
-    _license.dispose();
-    _expiry.dispose();
-    _vehicleNumber.dispose();
-    _vehicleModel.dispose();
     super.dispose();
   }
 
@@ -76,24 +63,20 @@ class _FareRideDriverProfileScreenState
     setState(() => _busy = true);
     try {
       final user = FirebaseFirestore.instance.collection('users').doc(uid);
-      await user.update({
-        'upiId': upi,
-        'name': _name.text.trim(),
-        'phone': _phone.text.trim(),
-        'licenseNumber': _license.text.trim(),
-        'licenseExpiry': _expiry.text.trim(),
-        'vehicleNumber': _vehicleNumber.text.trim(),
-        'vehicleModel': _vehicleModel.text.trim(),
-      });
-      await RecentStore.instance.savePhone(_phone.text);
+      await user.update({'upiId': upi});
       for (final entry in _images.entries) {
         await user.collection('documents').doc(entry.key).set({
           'imageBase64': base64Encode(entry.value),
           'uploadedAt': FieldValue.serverTimestamp(),
         });
       }
-      if (widget.onboardingMode) {
-        await user.update({'driverOnboardingComplete': true});
+      if ((profile['verificationStatus'] == 'rejected' ||
+              profile['verificationStatus'] == 'pending_documents') &&
+          _images.length == 3) {
+        await user.update({
+          'verificationStatus': 'pending_review',
+          'rejectionReason': FieldValue.delete(),
+        });
       }
       if (mounted) fareRideSnack(context, 'Driver profile saved.');
     } catch (e) {
@@ -122,104 +105,30 @@ class _FareRideDriverProfileScreenState
           }
           final data = snap.data!.data() ?? {};
           if (_loadedUid != uid) {
-            _upi.text = data['upiId'] ?? '7291098653@pthdfc';
-            _name.text = data['name'] ?? '';
-            _phone.text = data['phone'] ?? '';
-            _license.text = data['licenseNumber'] ?? '';
-            _expiry.text = data['licenseExpiry'] ?? '';
-            _vehicleNumber.text = data['vehicleNumber'] ?? '';
-            _vehicleModel.text = data['vehicleModel'] ?? '';
+            _upi.text = data['upiId'] ?? '';
             _loadedUid = uid;
           }
+          final status = data['verificationStatus'] ?? 'pending_documents';
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(uid)
-                    .collection('documents')
-                    .snapshots(),
-                builder: (context, documents) {
-                  final uploaded = const ['licence', 'rc', 'selfie'].every(
-                    (key) =>
-                        documents.data?.docs.any(
-                          (doc) =>
-                              doc.id == key &&
-                              doc.data()['imageBase64'] is String,
-                        ) ==
-                        true,
-                  );
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Documents: ${uploaded ? 'Submitted' : 'Not uploaded'}',
-                    ),
-                  );
-                },
-              ),
-              FareRideField(
-                label: 'Full name',
-                controller: _name,
-                autofillHints: const [AutofillHints.name],
-              ),
-              FareRideField(
-                label: 'Phone number',
-                controller: _phone,
-                keyboardType: TextInputType.phone,
-                autofillHints: const [AutofillHints.telephoneNumber],
-              ),
-              FareRideField(label: 'Licence number', controller: _license),
-              FareRideField(label: 'Licence expiry', controller: _expiry),
-              FareRideField(
-                label: 'Vehicle registration',
-                controller: _vehicleNumber,
-              ),
-              FareRideField(label: 'Vehicle model', controller: _vehicleModel),
-              ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'Your licence, vehicle and payment details. Your documents are below.',
+              Text(
+                'Verification: ${status.toString().replaceAll('_', ' ')}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
                 ),
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .collection('documents')
-                      .snapshots(),
-                  builder: (context, documents) {
-                    if (documents.hasError) {
-                      return Text(
-                        'Could not load documents: ${documents.error}',
-                      );
-                    }
-                    if (!documents.hasData) {
-                      return const LinearProgressIndicator();
-                    }
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final document in documents.data!.docs)
-                          if (document.data()['imageBase64'] is String)
-                            Column(
-                              children: [
-                                Image.memory(
-                                  base64Decode(
-                                    document.data()['imageBase64'] as String,
-                                  ),
-                                  width: 100,
-                                  height: 100,
-                                  fit: BoxFit.cover,
-                                ),
-                                Text(document.id),
-                              ],
-                            ),
-                      ],
-                    );
-                  },
+              ),
+              if (status == 'rejected')
+                Text(
+                  'Reason: ${data['rejectionReason'] ?? 'Update your documents and resubmit.'}',
                 ),
-              ],
+              Text(
+                'Licence ${data['licenseNumber'] ?? ''} · expires ${data['licenseExpiry'] ?? ''}',
+              ),
+              Text(
+                'Vehicle ${data['vehicleModel'] ?? ''} · ${data['vehicleNumber'] ?? ''}',
+              ),
               TextField(
                 controller: _upi,
                 decoration: const InputDecoration(
@@ -227,72 +136,50 @@ class _FareRideDriverProfileScreenState
                   hintText: 'name@bank',
                 ),
               ),
-              ...[
+              if (status == 'rejected' || status == 'pending_documents') ...[
                 const SizedBox(height: 14),
-                const Text('Uploaded documents can be replaced individually.'),
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .collection('documents')
-                      .snapshots(),
-                  builder: (context, docsSnap) {
-                    final saved = {
-                      for (final doc in docsSnap.data?.docs ?? [])
-                        doc.id: doc.data()['imageBase64'] as String?,
-                    };
-                    return Column(
-                      children: [
-                        for (final item in const {
-                          'licence': 'Driving licence',
-                          'rc': 'Vehicle RC',
-                          'selfie': 'Selfie',
-                        }.entries)
-                          ListTile(
-                            title: Text(item.value),
-                            subtitle:
-                                _images[item.key] == null &&
-                                    saved[item.key] != null
-                                ? const Text('Uploaded')
-                                : null,
-                            leading: _images[item.key] != null
-                                ? Image.memory(
-                                    _images[item.key]!,
-                                    width: 44,
-                                    height: 44,
-                                    fit: BoxFit.cover,
-                                  )
-                                : saved[item.key] != null
-                                ? Image.memory(
-                                    base64Decode(saved[item.key]!),
-                                    width: 44,
-                                    height: 44,
-                                    fit: BoxFit.cover,
-                                  )
-                                : const Icon(Icons.image_outlined),
-                            trailing: PopupMenuButton<ImageSource>(
-                              onSelected: (source) => _pick(item.key, source),
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(
-                                  value: ImageSource.camera,
-                                  child: Text('Camera'),
-                                ),
-                                PopupMenuItem(
-                                  value: ImageSource.gallery,
-                                  child: Text('Gallery'),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                const Text(
+                  'Upload all three documents to submit for administrator review',
                 ),
+                for (final item in const {
+                  'licence': 'Driving licence',
+                  'rc': 'Vehicle RC',
+                  'selfie': 'Selfie',
+                }.entries)
+                  ListTile(
+                    title: Text(item.value),
+                    leading: _images[item.key] == null
+                        ? const Icon(Icons.image_outlined)
+                        : Image.memory(
+                            _images[item.key]!,
+                            width: 44,
+                            height: 44,
+                          ),
+                    trailing: PopupMenuButton<ImageSource>(
+                      onSelected: (source) => _pick(item.key, source),
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: ImageSource.camera,
+                          child: Text('Camera'),
+                        ),
+                        PopupMenuItem(
+                          value: ImageSource.gallery,
+                          child: Text('Gallery'),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _busy ? null : () => _save(uid, data),
-                child: Text(_busy ? 'Saving…' : 'Save profile'),
+                child: Text(
+                  _busy
+                      ? 'Saving…'
+                      : (status == 'rejected' || status == 'pending_documents')
+                      ? 'Save UPI and submit documents'
+                      : 'Save UPI ID',
+                ),
               ),
             ],
           );

@@ -206,7 +206,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                               : riders[i].riderName,
                         ),
                         subtitle: Text(
-                          '${riders[i].pickupName} · ${requestStatusLabel(riders[i].status)} · ${formatRupees(riders[i].fare ?? estimateFares[riders[i].riderId] ?? 0)}',
+                          '${riders[i].pickupName} · ${riders[i].status} · ${formatRupees(riders[i].fare ?? estimateFares[riders[i].riderId] ?? 0)}',
                         ),
                         trailing: ride.status == RideStatus.completed
                             ? Text(riders[i].paymentStatus.replaceAll('_', ' '))
@@ -223,7 +223,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                         label: const Text('View fare and payment QR'),
                       ),
                     const SizedBox(height: 12),
-                    if (isDriver) ...[
+                    if (isDriver)
                       FilledButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,
@@ -232,20 +232,8 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                         ),
                         icon: const Icon(Icons.manage_accounts),
                         label: const Text('Manage ride'),
-                      ),
-                      if (ride.status == RideStatus.open ||
-                          ride.status == RideStatus.full)
-                        OutlinedButton(
-                          onPressed: () async {
-                            try {
-                              await RideService.instance.cancelRide(rideId);
-                            } catch (e) {
-                              if (context.mounted) fareRideSnack(context, '$e');
-                            }
-                          },
-                          child: const Text('Cancel ride'),
-                        ),
-                    ] else if (me == null && ride.status == RideStatus.open)
+                      )
+                    else if (me == null && ride.status == RideStatus.open)
                       FilledButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,

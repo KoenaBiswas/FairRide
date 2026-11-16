@@ -36,7 +36,7 @@ class RoutingService {
       final response = await http
           .get(
             uri,
-            headers: {'User-Agent': 'FareRide/1.0 (campus carpool)'},
+            headers: {'User-Agent': 'FareRide/1.0 (campus carpool demo)'},
           )
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {

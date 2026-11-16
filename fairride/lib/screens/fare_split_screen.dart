@@ -163,13 +163,12 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                       .where((r) => r.paymentStatus == 'confirmed')
                       .fold<double>(
                         0,
-                        (total, r) =>
-                            total + (r.fare ?? estimates[r.riderId] ?? 0),
+                        (sum, r) => sum + (r.fare ?? estimates[r.riderId] ?? 0),
                       );
                   final pending = riders.fold<double>(
                     0,
-                    (total, r) =>
-                        total +
+                    (sum, r) =>
+                        sum +
                         (r.paymentStatus == 'confirmed'
                             ? 0
                             : (r.fare ?? estimates[r.riderId] ?? 0)),
@@ -183,10 +182,8 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  'Total collected ${formatRupees(collected)}',
-                                ),
-                                Text('Outstanding ${formatRupees(pending)}'),
+                                Text('Collected ${formatRupees(collected)}'),
+                                Text('Pending ${formatRupees(pending)}'),
                               ],
                             ),
                           ),
@@ -290,7 +287,7 @@ class _RiderShareCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       Text(
-                        '${rider.pickupName} · ${requestStatusLabel(rider.status)}',
+                        '${rider.pickupName} · ${rider.status}',
                         style: const TextStyle(color: FareRideColors.muted),
                       ),
                     ],

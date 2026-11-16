@@ -32,6 +32,288 @@ class RideService {
   CollectionReference<Map<String, dynamic>> _history(String uid) =>
       _db.collection('users').doc(uid).collection('rideHistory');
 
+  /// Seeds repeatable Firestore examples for the signed-in user's role.
+  /// Returns false when this account already has the demo set.
+  Future<bool> seedDemoData() async {
+    final user = _user;
+    final profile = await _db.collection('users').doc(user.uid).get();
+    final data = profile.data();
+    final role = data?['role'] as String?;
+    if (role != 'rider' && role != 'driver') {
+      throw RideException(
+        'Your FareRide profile needs a rider or driver role.',
+      );
+    }
+
+    final prefix = 'demo_${user.uid}_$role';
+    final firstRide = _rides.doc('${prefix}_open_1');
+    if ((await firstRide.get()).exists) return false;
+
+    final now = DateTime.now();
+    final batch = _db.batch();
+    final driverIsCurrentUser = role == 'driver';
+    final driverId = driverIsCurrentUser
+        ? user.uid
+        : 'sample_driver_${user.uid}';
+    final driverName = driverIsCurrentUser
+        ? (data?['name'] as String? ?? user.displayName ?? 'Demo Driver')
+        : 'Riya Sharma · Demo driver';
+
+    Map<String, dynamic> rideData({
+      required String startName,
+      required double startLat,
+      required double startLng,
+      required String destName,
+      required double destLat,
+      required double destLng,
+      required DateTime departure,
+      required int seatsTotal,
+      required int seatsAvailable,
+      required String status,
+      required List<String> riderIds,
+      required double fare,
+    }) => {
+      'driverId': driverId,
+      'driverName': driverName,
+      'startName': startName,
+      'startLat': startLat,
+      'startLng': startLng,
+      'destName': destName,
+      'destLat': destLat,
+      'destLng': destLng,
+      'departureTime': Timestamp.fromDate(departure),
+      'seatsTotal': seatsTotal,
+      'seatsAvailable': seatsAvailable,
+      'status': status,
+      'riderIds': riderIds,
+      'totalFare': fare,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    Map<String, dynamic> requestData({
+      required String riderId,
+      required String riderName,
+      required String pickupName,
+      required double pickupLat,
+      required double pickupLng,
+      required double distance,
+      required String status,
+    }) => {
+      'riderId': riderId,
+      'riderName': riderName,
+      'pickupName': pickupName,
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'distanceToDestKm': distance,
+      'status': status,
+      'fare': null,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    final openRide1 = firstRide;
+    final openRide2 = _rides.doc('${prefix}_open_2');
+    final historyRide = _rides.doc('${prefix}_completed');
+    final riderA = 'sample_rider_${user.uid}_a';
+    final riderB = 'sample_rider_${user.uid}_b';
+
+    if (driverIsCurrentUser) {
+      batch.set(
+        openRide1,
+        rideData(
+          startName: 'Connaught Place',
+          startLat: 28.6315,
+          startLng: 77.2167,
+          destName: 'India Gate',
+          destLat: 28.6129,
+          destLng: 77.2295,
+          departure: now.add(const Duration(hours: 1)),
+          seatsTotal: 3,
+          seatsAvailable: 2,
+          status: RideStatus.open,
+          riderIds: [riderA],
+          fare: 180,
+        ),
+      );
+      batch.set(
+        openRide1.collection('requests').doc(riderA),
+        requestData(
+          riderId: riderA,
+          riderName: 'Aarav Mehta',
+          pickupName: 'Janpath',
+          pickupLat: 28.6242,
+          pickupLng: 77.2195,
+          distance: 3.4,
+          status: RequestStatus.accepted,
+        ),
+      );
+      batch.set(
+        openRide1.collection('requests').doc(riderB),
+        requestData(
+          riderId: riderB,
+          riderName: 'Maya Kapoor',
+          pickupName: 'Khan Market',
+          pickupLat: 28.5988,
+          pickupLng: 77.2311,
+          distance: 5.8,
+          status: RequestStatus.pending,
+        ),
+      );
+      batch.set(
+        openRide2,
+        rideData(
+          startName: 'Hauz Khas',
+          startLat: 28.5494,
+          startLng: 77.2001,
+          destName: 'Gurugram Cyber Hub',
+          destLat: 28.4950,
+          destLng: 77.0890,
+          departure: now.add(const Duration(hours: 3)),
+          seatsTotal: 3,
+          seatsAvailable: 3,
+          status: RideStatus.open,
+          riderIds: const [],
+          fare: 240,
+        ),
+      );
+      batch.set(
+        openRide2.collection('requests').doc('${riderA}_2'),
+        requestData(
+          riderId: '${riderA}_2',
+          riderName: 'Aarav Mehta',
+          pickupName: 'Green Park',
+          pickupLat: 28.5595,
+          pickupLng: 77.2060,
+          distance: 12.2,
+          status: RequestStatus.pending,
+        ),
+      );
+      batch.set(
+        historyRide,
+        rideData(
+          startName: 'Lajpat Nagar',
+          startLat: 28.5677,
+          startLng: 77.2433,
+          destName: 'Noida Sector 18',
+          destLat: 28.5708,
+          destLng: 77.3261,
+          departure: now.subtract(const Duration(days: 2)),
+          seatsTotal: 3,
+          seatsAvailable: 0,
+          status: RideStatus.completed,
+          riderIds: [riderA, riderB],
+          fare: 320,
+        )..['completedAt'] = FieldValue.serverTimestamp(),
+      );
+      batch.set(_history(user.uid).doc(historyRide.id), {
+        'rideId': historyRide.id,
+        'role': 'driver',
+        'startName': 'Lajpat Nagar',
+        'destName': 'Noida Sector 18',
+        'departureTime': Timestamp.fromDate(
+          now.subtract(const Duration(days: 2)),
+        ),
+        'amount': 320.0,
+        'riders': 2,
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      final pendingRide = openRide2;
+      final acceptedRide = historyRide;
+      final riderName =
+          data?['name'] as String? ?? user.displayName ?? 'Demo Rider';
+      batch.set(
+        openRide1,
+        rideData(
+          startName: 'Connaught Place',
+          startLat: 28.6315,
+          startLng: 77.2167,
+          destName: 'India Gate',
+          destLat: 28.6129,
+          destLng: 77.2295,
+          departure: now.add(const Duration(hours: 1)),
+          seatsTotal: 3,
+          seatsAvailable: 3,
+          status: RideStatus.open,
+          riderIds: const [],
+          fare: 180,
+        ),
+      );
+      batch.set(
+        pendingRide,
+        rideData(
+          startName: 'Hauz Khas',
+          startLat: 28.5494,
+          startLng: 77.2001,
+          destName: 'Gurugram Cyber Hub',
+          destLat: 28.4950,
+          destLng: 77.0890,
+          departure: now.add(const Duration(hours: 3)),
+          seatsTotal: 3,
+          seatsAvailable: 2,
+          status: RideStatus.open,
+          riderIds: const [],
+          fare: 240,
+        ),
+      );
+      batch.set(
+        pendingRide.collection('requests').doc(user.uid),
+        requestData(
+          riderId: user.uid,
+          riderName: riderName,
+          pickupName: 'Green Park',
+          pickupLat: 28.5595,
+          pickupLng: 77.2060,
+          distance: 12.2,
+          status: RequestStatus.pending,
+        ),
+      );
+      batch.set(
+        acceptedRide,
+        rideData(
+          startName: 'Lajpat Nagar',
+          startLat: 28.5677,
+          startLng: 77.2433,
+          destName: 'Noida Sector 18',
+          destLat: 28.5708,
+          destLng: 77.3261,
+          departure: now.add(const Duration(hours: 2)),
+          seatsTotal: 3,
+          seatsAvailable: 2,
+          status: RideStatus.open,
+          riderIds: [user.uid],
+          fare: 160,
+        ),
+      );
+      batch.set(
+        acceptedRide.collection('requests').doc(user.uid),
+        requestData(
+          riderId: user.uid,
+          riderName: riderName,
+          pickupName: 'Lajpat Nagar Metro',
+          pickupLat: 28.5700,
+          pickupLng: 77.2430,
+          distance: 8.1,
+          status: RequestStatus.accepted,
+        ),
+      );
+      batch.set(_history(user.uid).doc('${prefix}_history'), {
+        'rideId': '${prefix}_history',
+        'role': 'rider',
+        'startName': 'Rajiv Chowk',
+        'destName': 'Saket',
+        'departureTime': Timestamp.fromDate(
+          now.subtract(const Duration(days: 1)),
+        ),
+        'amount': 95.0,
+        'completedAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    await batch.commit();
+    return true;
+  }
+
   // ------------------------------------------------------------ DRIVER
 
   /// Driver posts a ride. Returns the new ride id.
@@ -49,17 +331,10 @@ class RideService {
     final user = _user;
     final profile =
         (await _db.collection('users').doc(user.uid).get()).data() ?? {};
-    final docs = await _db
-        .collection('users')
-        .doc(user.uid)
-        .collection('documents')
-        .get();
-    if (!const ['licence', 'rc', 'selfie'].every(
-      (key) => docs.docs.any(
-        (doc) => doc.id == key && doc.data()['imageBase64'] is String,
-      ),
-    )) {
-      throw RideException('Upload all three documents before posting rides.');
+    if (profile['verificationStatus'] != 'verified') {
+      throw RideException(
+        'Your driver profile must be verified before posting rides.',
+      );
     }
     if (seats < 1 || seats > 6) throw RideException('Seats must be 1 to 6.');
     if (totalFare < 0) throw RideException('Fare cannot be negative.');
@@ -330,13 +605,6 @@ class RideService {
     String riderId, {
     String utr = '',
   }) async {
-    if (_user.uid != riderId) {
-      throw RideException('You can only mark your own fare as paid.');
-    }
-    final ride = await _rides.doc(rideId).get();
-    if (ride.data()?['status'] != RideStatus.completed) {
-      throw RideException('Payment can be marked after the ride is completed.');
-    }
     await _rides.doc(rideId).collection('requests').doc(riderId).update({
       'paymentStatus': 'marked_paid',
       'paymentMethod': 'upi_qr',
@@ -349,18 +617,6 @@ class RideService {
   }
 
   Future<void> confirmPayment(String rideId, String riderId) async {
-    final ride = await _rides.doc(rideId).get();
-    if (ride.data()?['driverId'] != _user.uid) {
-      throw RideException('Only this ride’s driver can confirm payment.');
-    }
-    final request = await _rides
-        .doc(rideId)
-        .collection('requests')
-        .doc(riderId)
-        .get();
-    if (request.data()?['paymentStatus'] != 'marked_paid') {
-      throw RideException('This rider has not marked the payment as sent.');
-    }
     await _rides.doc(rideId).collection('requests').doc(riderId).update({
       'paymentStatus': 'confirmed',
       'confirmedAt': FieldValue.serverTimestamp(),

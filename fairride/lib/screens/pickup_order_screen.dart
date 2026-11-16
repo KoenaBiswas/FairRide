@@ -100,7 +100,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${requestStatusLabel(request.status)}',
+                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${request.status}',
                                   style: const TextStyle(
                                     color: FareRideColors.muted,
                                   ),

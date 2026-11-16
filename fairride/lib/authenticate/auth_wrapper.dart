@@ -9,13 +9,6 @@ class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  Widget build(BuildContext context) => const FareRideAuthGate();
-}
-
-class FareRideAuthGate extends StatelessWidget {
-  const FareRideAuthGate({super.key});
-
-  @override
   Widget build(BuildContext context) => StreamBuilder<User?>(
     stream: AuthService.instance.authChanges,
     builder: (context, auth) {
@@ -24,151 +17,29 @@ class FareRideAuthGate extends StatelessWidget {
       }
       final user = auth.data;
       if (user == null) return const FareRideLandingScreen();
-      final googleUser = user.providerData.any(
-        (provider) => provider.providerId == GoogleAuthProvider.PROVIDER_ID,
-      );
+      if (!user.emailVerified) return const _VerifyEmailScreen();
       return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: AuthService.instance.userDoc(user.uid),
         builder: (context, profile) {
-          if (profile.hasError) {
-            return _MessageScreen(
-              message: 'Unable to load your FareRide profile: ${profile.error}',
-              action: TextButton(
-                onPressed: AuthService.instance.signOut,
-                child: const Text('Log out'),
-              ),
-            );
-          }
-          if (!profile.hasData) return const _Loading();
           final role = profile.data?.data()?['role'];
-          if (role != 'rider' && role != 'driver') {
-            return _RoleRecoveryScreen(
-              user: user,
-              riderOnly: googleUser && !profile.data!.exists,
-            );
-          }
-          if (!googleUser && !user.emailVerified) {
-            return const _VerifyEmailScreen();
-          }
-          if (role == 'driver' &&
-              profile.data?.data()?['driverOnboardingComplete'] == false) {
-            return const FareRideDriverProfileScreen(onboardingMode: true);
+          if (profile.data?.data()?['isAdmin'] == true) {
+            return const FareRideAdminReviewScreen();
           }
           if (role == 'rider') return const FareRideRiderDashboardScreen();
           if (role == 'driver') return const FareRideDriverDashboardScreen();
-          return const _RoleRecoveryScreen();
+          if (profile.hasError) {
+            return _MessageScreen(
+              message: 'Unable to load your FareRide profile. Check your connection and try again.',
+              action: TextButton(
+                onPressed: AuthService.instance.signOut,
+                child: const Text('Sign out'),
+              ),
+            );
+          }
+          return const _Loading();
         },
       );
     },
-  );
-}
-
-class _RoleRecoveryScreen extends StatefulWidget {
-  const _RoleRecoveryScreen({this.user, this.riderOnly = false});
-  final User? user;
-  final bool riderOnly;
-
-  @override
-  State<_RoleRecoveryScreen> createState() => _RoleRecoveryScreenState();
-}
-
-class _RoleRecoveryScreenState extends State<_RoleRecoveryScreen> {
-  String _role = 'rider';
-  bool _busy = false;
-  String? _error;
-
-  Future<void> _continue() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await AuthService.instance.createProfileForCurrentUser(_role);
-    } catch (error) {
-      if (mounted) setState(() => _error = '$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('Complete your FareRide profile'),
-      actions: [
-        TextButton.icon(
-          onPressed: _busy ? null : AuthService.instance.signOut,
-          icon: const Icon(Icons.logout),
-          label: const Text('Log out'),
-        ),
-      ],
-    ),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.user?.displayName?.trim().isNotEmpty == true
-                    ? 'Welcome, ${widget.user!.displayName}'
-                    : 'Welcome to FareRide',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(widget.user?.email ?? ''),
-              const SizedBox(height: 24),
-              if (widget.riderOnly) ...[
-                const Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.check_circle,
-                      color: FareRideColors.green,
-                    ),
-                    title: Text('Rider'),
-                    subtitle: Text(
-                      'To drive with FareRide, create a driver account with email.',
-                    ),
-                  ),
-                ),
-              ] else ...[
-                const Text('Choose how you want to use FareRide'),
-                const SizedBox(height: 10),
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'rider', label: Text('Rider')),
-                    ButtonSegment(value: 'driver', label: Text('Driver')),
-                  ],
-                  selected: {_role},
-                  onSelectionChanged: _busy
-                      ? null
-                      : (selected) => setState(() => _role = selected.first),
-                ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: _busy ? null : _continue,
-                child: Text(
-                  _busy
-                      ? 'Saving profile…'
-                      : 'Continue as ${_role[0].toUpperCase()}${_role.substring(1)}',
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
   );
 }
 
@@ -197,14 +68,14 @@ class _VerifyEmailScreenState extends State<_VerifyEmailScreen> {
     setState(() {
       _busy = false;
       _message = verified
-          ? 'Email confirmed. Loading your account…'
-          : 'Email is not confirmed yet. Check your inbox and try again.';
+          ? 'Email verified. Loading your account…'
+          : 'Email is not verified yet. Check your inbox and try again.';
     });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Confirm your email')),
+    appBar: AppBar(title: const Text('Verify your email')),
     body: Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -214,12 +85,12 @@ class _VerifyEmailScreenState extends State<_VerifyEmailScreen> {
             const Icon(Icons.mark_email_read_outlined, size: 64),
             const SizedBox(height: 16),
             Text(
-              'Confirm your email',
+              'Verify your email',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'We sent a confirmation link to ${FirebaseAuth.instance.currentUser?.email ?? 'your email address'}.',
+              'We sent a verification link to ${FirebaseAuth.instance.currentUser?.email ?? 'your email address'}.',
               textAlign: TextAlign.center,
             ),
             if (_message != null) ...[
@@ -229,11 +100,11 @@ class _VerifyEmailScreenState extends State<_VerifyEmailScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _check,
-              child: const Text('I have confirmed'),
+              child: const Text('I have verified'),
             ),
             TextButton(
               onPressed: _busy ? null : AuthService.instance.resendVerification,
-              child: const Text('Resend confirmation email'),
+              child: const Text('Resend verification email'),
             ),
             TextButton(
               onPressed: AuthService.instance.signOut,
