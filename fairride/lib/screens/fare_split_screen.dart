@@ -163,12 +163,12 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                       .where((r) => r.paymentStatus == 'confirmed')
                       .fold<double>(
                         0,
-                        (sum, r) => sum + (r.fare ?? estimates[r.riderId] ?? 0),
+                        (total, r) => total + (r.fare ?? estimates[r.riderId] ?? 0),
                       );
                   final pending = riders.fold<double>(
                     0,
-                    (sum, r) =>
-                        sum +
+                    (total, r) =>
+                        total +
                         (r.paymentStatus == 'confirmed'
                             ? 0
                             : (r.fare ?? estimates[r.riderId] ?? 0)),

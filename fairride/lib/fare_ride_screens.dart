@@ -31,7 +31,6 @@ import 'services/routing_service.dart';
 import 'services/recent_store.dart';
 import 'logic/rider_ordering.dart' as ordering;
 import 'utils/currency.dart';
-import 'utils/license_number.dart';
 import 'authenticate/auth_wrapper.dart';
 import 'screens/pickup_map_screen.dart';
 
@@ -52,6 +51,7 @@ part 'screens/pickup_order_screen.dart';
 part 'screens/fare_split_screen.dart';
 part 'screens/ride_details_screen.dart';
 part 'screens/driver_profile_screen.dart';
+part 'screens/admin_review_screen.dart';
 
 class FareRideApp extends StatelessWidget {
   const FareRideApp({super.key});
@@ -61,7 +61,7 @@ class FareRideApp extends StatelessWidget {
     title: 'FareRide',
     debugShowCheckedModeBanner: false,
     theme: _fareRideTheme,
-    home: const FareRideAuthGate(),
+    home: const AuthWrapper(),
     routes: FareRideRoutes.routes,
   );
 }
@@ -87,6 +87,6 @@ abstract final class FareRideRoutes {
     requestRide: (_) => const FareRideRequestRideScreen(),
     pickupOrder: (_) => const FareRidePickupOrderScreen(),
     fareSplit: (_) => const FareRideFareSplitScreen(),
-    authGate: (_) => const FareRideAuthGate(),
+    authGate: (_) => const AuthWrapper(),
   };
 }

@@ -15,6 +15,8 @@ class AuthFailure implements Exception {
 class AuthService {
   AuthService._();
   static final AuthService instance = AuthService._();
+  static final Future<void> _googleSignInInitialization =
+      GoogleSignIn.instance.initialize();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -158,11 +160,10 @@ class AuthService {
   /// Existing profiles retain their stored role.
   Future<void> signInWithGoogle({required String newUserRole}) async {
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return;
-      final googleAuth = await googleUser.authentication;
+      await _googleSignInInitialization;
+      final googleUser = await GoogleSignIn.instance.authenticate();
+      final googleAuth = googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       final result = await _auth.signInWithCredential(credential);
