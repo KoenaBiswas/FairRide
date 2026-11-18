@@ -266,7 +266,7 @@ class _RiderShareCard extends StatelessWidget {
   final bool completed, isDriver;
   final VoidCallback onConfirm;
   final String paymentUri;
-  final ValueChanged<String> onMarkPaid;
+  final Future<void> Function(String) onMarkPaid;
   @override
   Widget build(BuildContext context) {
     final amount = rider.fare ?? estimate;
@@ -339,32 +339,21 @@ class _RiderShareCard extends StatelessWidget {
                     ),
                     FilledButton(
                       onPressed: () async {
-                        final controller = TextEditingController();
                         final value = await showDialog<String>(
                           context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Mark payment sent'),
-                            content: TextField(
-                              controller: controller,
-                              decoration: const InputDecoration(
-                                labelText: 'UTR or last 4 digits (optional)',
-                              ),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Cancel'),
-                              ),
-                              FilledButton(
-                                onPressed: () =>
-                                    Navigator.pop(ctx, controller.text),
-                                child: const Text('I have paid'),
-                              ),
-                            ],
-                          ),
+                          builder: (_) => const _MarkPaidDialog(),
                         );
-                        controller.dispose();
-                        if (value != null) onMarkPaid(value);
+                        if (!context.mounted || value == null) return;
+                        try {
+                          await onMarkPaid(value);
+                        } catch (error) {
+                          if (context.mounted) {
+                            fareRideSnack(
+                              context,
+                              'Could not save payment: $error',
+                            );
+                          }
+                        }
                       },
                       child: const Text('I have paid'),
                     ),
@@ -395,6 +384,49 @@ class _RiderShareCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MarkPaidDialog extends StatefulWidget {
+  const _MarkPaidDialog();
+
+  @override
+  State<_MarkPaidDialog> createState() => _MarkPaidDialogState();
+}
+
+class _MarkPaidDialogState extends State<_MarkPaidDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Mark payment sent'),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      onChanged: (_) => setState(() {}),
+      decoration: const InputDecoration(
+        labelText: 'UTR or payment reference number',
+        helperText: 'Enter the reference shown by your UPI app.',
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.of(context).pop<String>(null),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _controller.text.trim().isEmpty
+            ? null
+            : () => Navigator.of(context).pop(_controller.text.trim()),
+        child: const Text('I have paid'),
+      ),
+    ],
+  );
 }
 
 class _RideFareChooser extends StatelessWidget {

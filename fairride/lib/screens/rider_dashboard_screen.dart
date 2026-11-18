@@ -4,16 +4,11 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
   const FareRideRiderDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
+    drawer: const FareRideAccountDrawer(isDriver: false),
     appBar: AppBar(
       title: const FareRideBrand(compact: true),
-      actions: [
-        IconButton(
-          tooltip: 'Log out',
-          onPressed: AuthService.instance.signOut,
-          icon: const Icon(Icons.logout),
-        ),
-      ],
     ),
+    bottomNavigationBar: fareRideBottomNav(context, selected: 0),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -31,6 +26,8 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
+        const FareRideHomeInsights(isDriver: false),
+        const SizedBox(height: 12),
         FareRidePrimaryButton(
           label: 'Find a ride',
           icon: Icons.search,
@@ -65,7 +62,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                             style: const TextStyle(fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            'Driver ${ride.driverName} · ${ride.status} · departs ${DateFormat.yMMMd().add_jm().format(ride.departureTime)}',
+                            'Driver ${ride.driverName} · ${ride.status == RideStatus.inProgress ? 'Ride started' : 'Driver accepted your request'} · departs ${DateFormat.yMMMd().add_jm().format(ride.departureTime)}',
                             style: const TextStyle(color: FareRideColors.muted),
                           ),
                           const SizedBox(height: 4),
@@ -207,15 +204,14 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
   const FareRideDriverDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
+    drawer: const FareRideAccountDrawer(isDriver: true),
     appBar: AppBar(
       title: const FareRideBrand(compact: true),
-      actions: [
-        IconButton(
-          tooltip: 'Log out',
-          onPressed: AuthService.instance.signOut,
-          icon: const Icon(Icons.logout),
-        ),
-      ],
+    ),
+    bottomNavigationBar: fareRideBottomNav(
+      context,
+      selected: 0,
+      role: 'driver',
     ),
     body: ListView(
       padding: const EdgeInsets.all(20),
@@ -229,6 +225,8 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
+        const FareRideHomeInsights(isDriver: true),
+        const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance
               .collection('users')
@@ -240,7 +238,9 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
               (key) =>
                   docs.data?.docs.any(
                     (doc) =>
-                        doc.id == key && doc.data()['imageBase64'] is String,
+                        doc.id == key &&
+                        doc.data()['imageBase64'] is String &&
+                        (doc.data()['imageBase64'] as String).isNotEmpty,
                   ) ==
                   true,
             );
@@ -328,7 +328,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                         subtitle: Text(
-                          '${ride.seatsAvailable}/${ride.seatsTotal} seats · ${ride.status} · ${formatRupees(ride.totalFare)}',
+                          '${ride.seatsAvailable}/${ride.seatsTotal} seats · ${ride.riderIds.length} accepted · ${ride.status == RideStatus.inProgress ? 'Ride started' : 'Ride not started'} · ${formatRupees(ride.totalFare)}',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(

@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 
 import '../services/recent_store.dart';
 
@@ -18,8 +22,129 @@ class LocationChoice {
   final double longitude;
 }
 
-/// Place search with platform geocoder suggestions and an explicit current
-/// location action. A value is emitted only after the user selects a result.
+/// Online OpenStreetMap place search, biased toward Delhi NCR. Search results
+/// are cached and serialized so the public Photon demo endpoint is not hit
+/// repeatedly while a user edits the same query.
+class _PlaceSearchService {
+  _PlaceSearchService._();
+  static final instance = _PlaceSearchService._();
+
+  final _client = http.Client();
+  final _cache = <String, List<LocationChoice>>{};
+  final _inFlight = <String, Future<List<LocationChoice>>>{};
+  Future<void> _queue = Future<void>.value();
+  DateTime? _lastRequestAt;
+
+  Future<List<LocationChoice>> search(String query) {
+    final key = query.trim().toLowerCase();
+    final cached = _cache[key];
+    if (cached != null) return Future.value(cached);
+    final pending = _inFlight[key];
+    if (pending != null) return pending;
+
+    final result = Completer<List<LocationChoice>>();
+    _inFlight[key] = result.future;
+    _queue = _queue.then((_) async {
+      final lastRequestAt = _lastRequestAt;
+      if (lastRequestAt != null) {
+        final elapsed = DateTime.now().difference(lastRequestAt);
+        const interval = Duration(milliseconds: 1100);
+        if (elapsed < interval) await Future<void>.delayed(interval - elapsed);
+      }
+      _lastRequestAt = DateTime.now();
+      try {
+        final places = await _fetch(query);
+        _cache[key] = places;
+        if (_cache.length > 80) _cache.remove(_cache.keys.first);
+        result.complete(places);
+      } catch (error, stackTrace) {
+        result.completeError(error, stackTrace);
+      } finally {
+        _inFlight.remove(key);
+      }
+    });
+    return result.future;
+  }
+
+  Future<List<LocationChoice>> _fetch(String query) async {
+    final uri = Uri.https('photon.komoot.io', '/api/', {
+      'q': query,
+      'limit': '10',
+      'lat': '28.6139',
+      'lon': '77.2090',
+      'zoom': '9',
+      'location_bias_scale': '0.15',
+      'countrycode': 'IN',
+      'lang': 'en',
+    });
+    final response = await _client
+        .get(uri, headers: {'User-Agent': 'FareRide/1.0'})
+        .timeout(const Duration(seconds: 12));
+    if (response.statusCode != 200) {
+      throw Exception('Place search returned ${response.statusCode}.');
+    }
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final features = body['features'] as List? ?? const [];
+    final results = <LocationChoice>[];
+    final seen = <String>{};
+    for (final feature in features) {
+      if (feature is! Map<String, dynamic>) continue;
+      final properties = feature['properties'];
+      final geometry = feature['geometry'];
+      if (properties is! Map<String, dynamic> ||
+          geometry is! Map<String, dynamic>) {
+        continue;
+      }
+      final coordinates = geometry['coordinates'];
+      if (coordinates is! List || coordinates.length < 2) continue;
+      final longitude = (coordinates[0] as num?)?.toDouble();
+      final latitude = (coordinates[1] as num?)?.toDouble();
+      if (latitude == null || longitude == null) continue;
+
+      final parts = <String>[];
+      for (final key in const [
+        'name',
+        'housenumber',
+        'street',
+        'district',
+        'locality',
+        'city',
+        'county',
+        'state',
+        'postcode',
+        'country',
+      ]) {
+        final value = properties[key];
+        if (value is! String || value.trim().isEmpty) continue;
+        final part = value.trim();
+        if (!parts.any((existing) => existing.toLowerCase() == part.toLowerCase())) {
+          parts.add(part);
+        }
+      }
+      final displayName = properties['name'] is String
+          ? (properties['name'] as String).trim()
+          : '';
+      final name = parts.isNotEmpty
+          ? parts.join(', ')
+          : (displayName.isNotEmpty ? displayName : query);
+      final key =
+          '${latitude.toStringAsFixed(5)},${longitude.toStringAsFixed(5)}';
+      if (seen.add(key)) {
+        results.add(
+          LocationChoice(
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+          ),
+        );
+      }
+    }
+    return results;
+  }
+}
+
+/// Online place search with device-geocoder fallback, map picking, and an
+/// explicit current-location action. Values emit only after user selection.
 class LocationPickerField extends StatefulWidget {
   const LocationPickerField({
     super.key,
@@ -78,59 +203,74 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     setState(() {
       _suggestions = const [];
       _message = null;
-      _searching = query.trim().length >= 3;
+      _searching = query.trim().length >= 2;
     });
-    if (query.trim().length < 3) {
+    if (query.trim().length < 2) {
       setState(() => _searching = false);
       return;
     }
     final version = _queryVersion;
-    _debounce = Timer(const Duration(milliseconds: 700), () {
+    _debounce = Timer(const Duration(milliseconds: 900), () {
       _search(query.trim(), version);
     });
   }
 
   Future<void> _search(String query, int version) async {
+    List<LocationChoice> results = const [];
+    var searchFailed = false;
     try {
-      final locations = await _geocoding.locationFromAddress(query);
-      final results = <LocationChoice>[];
-      final seen = <String>{};
-      for (final location in locations.take(5)) {
-        if (!mounted || version != _queryVersion) return;
-        final placemarks = await _geocoding.placemarkFromCoordinates(
-          location.latitude,
-          location.longitude,
-        );
-        final name = placemarks.isEmpty
-            ? query
-            : _formatPlacemark(placemarks.first);
-        final key =
-            '${location.latitude.toStringAsFixed(4)},${location.longitude.toStringAsFixed(4)}';
-        if (seen.add(key)) {
-          results.add(
-            LocationChoice(
-              name: name.isEmpty ? query : name,
-              latitude: location.latitude,
-              longitude: location.longitude,
-            ),
-          );
-        }
-      }
-      if (!mounted || version != _queryVersion) return;
-      setState(() {
-        _suggestions = results;
-        _searching = false;
-        _message = results.isEmpty
-            ? 'No matches found. Try a nearby landmark or full address.'
-            : null;
-      });
+      results = await _PlaceSearchService.instance.search(query);
     } catch (_) {
-      if (!mounted || version != _queryVersion) return;
-      setState(() {
-        _searching = false;
-        _message = 'Could not search places right now. Try a fuller address or use your location.';
-      });
+      searchFailed = true;
     }
+    if (results.isEmpty) {
+      try {
+        results = await _searchWithDeviceGeocoder(query, version);
+      } catch (_) {
+        searchFailed = true;
+      }
+    }
+    if (!mounted || version != _queryVersion) return;
+    setState(() {
+      _suggestions = results;
+      _searching = false;
+      _message = results.isNotEmpty
+          ? null
+          : searchFailed
+          ? 'Place search is unavailable right now. Check your internet and try again.'
+          : 'No matches found. Try a nearby landmark or add the area name.';
+    });
+  }
+
+  Future<List<LocationChoice>> _searchWithDeviceGeocoder(
+    String query,
+    int version,
+  ) async {
+    final locations = await _geocoding.locationFromAddress(query);
+    final results = <LocationChoice>[];
+    final seen = <String>{};
+    for (final location in locations.take(5)) {
+      if (!mounted || version != _queryVersion) return const [];
+      final placemarks = await _geocoding.placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      final name = placemarks.isEmpty
+          ? query
+          : _formatPlacemark(placemarks.first);
+      final key =
+          '${location.latitude.toStringAsFixed(4)},${location.longitude.toStringAsFixed(4)}';
+      if (seen.add(key)) {
+        results.add(
+          LocationChoice(
+            name: name.isEmpty ? query : name,
+            latitude: location.latitude,
+            longitude: location.longitude,
+          ),
+        );
+      }
+    }
+    return results;
   }
 
   String _formatPlacemark(Placemark place) {
@@ -164,6 +304,14 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
     });
     widget.onSelected(choice);
     FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _pickOnMap() async {
+    final choice = await showDialog<LocationChoice>(
+      context: context,
+      builder: (_) => const _LocationMapDialog(),
+    );
+    if (choice != null && mounted) _choose(choice);
   }
 
   Future<void> _useCurrentLocation() async {
@@ -260,7 +408,7 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
         onChanged: _onChanged,
         onSubmitted: (value) {
           _debounce?.cancel();
-          if (value.trim().length >= 3) _search(value.trim(), ++_queryVersion);
+          if (value.trim().length >= 2) _search(value.trim(), ++_queryVersion);
         },
         decoration: InputDecoration(
           labelText: widget.label,
@@ -358,12 +506,173 @@ class _LocationPickerFieldState extends State<LocationPickerField> {
             ],
           ),
         ),
+      if (_suggestions.isNotEmpty)
+        const Padding(
+          padding: EdgeInsets.only(left: 8, top: 2),
+          child: Text(
+            'Place data © OpenStreetMap contributors · Photon',
+            style: TextStyle(fontSize: 10, color: Colors.black54),
+          ),
+        ),
       if (_message != null)
         Padding(
           padding: const EdgeInsets.only(top: 6, left: 8),
           child: Text(_message!, style: Theme.of(context).textTheme.bodySmall),
         ),
+      TextButton.icon(
+        onPressed: _pickOnMap,
+        icon: const Icon(Icons.map_outlined),
+        label: const Text('Can’t find it? Pick the exact point on a map'),
+      ),
     ],
+  );
+}
+
+class _LocationMapDialog extends StatefulWidget {
+  const _LocationMapDialog();
+
+  @override
+  State<_LocationMapDialog> createState() => _LocationMapDialogState();
+}
+
+class _LocationMapDialogState extends State<_LocationMapDialog> {
+  static const _delhiCenter = LatLng(28.6139, 77.2090);
+  LatLng? _selected;
+  bool _resolving = false;
+
+  Future<void> _useSelection() async {
+    final point = _selected;
+    if (point == null) return;
+    setState(() => _resolving = true);
+    var name =
+        'Selected location (${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)})';
+    try {
+      final places = await Geocoding().placemarkFromCoordinates(
+        point.latitude,
+        point.longitude,
+      );
+      if (places.isNotEmpty) {
+        final place = places.first;
+        final parts = <String?>[
+          place.name,
+          place.subLocality,
+          place.locality,
+          place.administrativeArea,
+        ]
+            .whereType<String>()
+            .map((part) => part.trim())
+            .where((part) => part.isNotEmpty)
+            .toSet()
+            .toList();
+        if (parts.isNotEmpty) name = parts.join(', ');
+      }
+    } catch (_) {
+      // Exact coordinates still let the user use places the geocoder misses.
+    }
+    if (!mounted) return;
+    Navigator.of(context).pop(
+      LocationChoice(
+        name: name,
+        latitude: point.latitude,
+        longitude: point.longitude,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    child: SizedBox(
+      width: 520,
+      height: 560,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Pick a location',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'Move the map and tap the exact pickup or destination point.',
+              style: TextStyle(color: Colors.black54),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: FlutterMap(
+              options: MapOptions(
+                initialCenter: _delhiCenter,
+                initialZoom: 10,
+                onTap: (_, point) => setState(() => _selected = point),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.fairride',
+                ),
+                if (_selected != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _selected!,
+                        width: 44,
+                        height: 44,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
+                      ),
+                    ],
+                  ),
+                RichAttributionWidget(
+                  attributions: [
+                    TextSourceAttribution('© OpenStreetMap contributors'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: _selected == null || _resolving ? null : _useSelection,
+                  icon: _resolving
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check),
+                  label: const Text('Use this point'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 }
 

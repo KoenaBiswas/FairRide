@@ -9,6 +9,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
     if (rideId == null) {
       return const FareRidePage(
         title: 'Pickup details',
+        role: 'driver',
         child: Center(
           child: Text('Open pickup management from a posted ride.'),
         ),
@@ -21,11 +22,13 @@ class FareRidePickupOrderScreen extends StatelessWidget {
         if (ride == null) {
           return const FareRidePage(
             title: 'Pickup details',
+            role: 'driver',
             child: Center(child: CircularProgressIndicator()),
           );
         }
         return FareRidePage(
           title: 'Pickup details',
+          role: 'driver',
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
@@ -40,6 +43,12 @@ class FareRidePickupOrderScreen extends StatelessWidget {
               Text(
                 '${ride.seatsAvailable} of ${ride.seatsTotal} seats available · ${formatRupees(ride.totalFare)} total',
                 style: const TextStyle(color: FareRideColors.muted),
+              ),
+              Text(
+                ride.status == RideStatus.inProgress
+                    ? 'Current status: Ride started'
+                    : 'Current status: Ride not started',
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               TextButton.icon(
                 onPressed: () => Navigator.push(
@@ -100,7 +109,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${request.status}',
+                                  '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${requestStatusLabel(request.status)}',
                                   style: const TextStyle(
                                     color: FareRideColors.muted,
                                   ),

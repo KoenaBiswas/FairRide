@@ -28,6 +28,46 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
   late bool _signup = widget.initialSignup;
   bool _busy = false;
   String? _error;
+  List<String> _recentEmails = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecentEmails();
+  }
+
+  Future<void> _loadRecentEmails() async {
+    try {
+      final emails = await RecentStore.instance.recentEmails();
+      if (mounted) setState(() => _recentEmails = emails);
+    } catch (_) {
+      // Email suggestions are optional; login remains available without them.
+    }
+  }
+
+  Future<void> _rememberEmail(String email) async {
+    try {
+      await RecentStore.instance.saveEmail(email);
+      await _loadRecentEmails();
+    } catch (_) {
+      // Do not interrupt a successful authentication for local suggestion storage.
+    }
+  }
+
+  Future<void> _removeRecentEmail(String email) async {
+    try {
+      await RecentStore.instance.removeEmail(email);
+      await _loadRecentEmails();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _recentEmails = _recentEmails
+              .where((savedEmail) => savedEmail != email)
+              .toList(),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -83,6 +123,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
               e.key: base64Encode(_compressDocument(e.value)),
           },
         );
+        await _rememberEmail(_email.text);
         _showAuthGate();
       } else {
         await AuthService.instance.signIn(
@@ -90,6 +131,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
           password: _password.text,
           expectedRole: _role,
         );
+        await _rememberEmail(_email.text);
         _showAuthGate();
       }
     } on AuthFailure catch (e) {
@@ -244,6 +286,31 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
             keyboardType: TextInputType.emailAddress,
             validator: validateEmail,
           ),
+          if (!_signup && _recentEmails.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Previous emails · tap to fill',
+              style: TextStyle(fontSize: 12, color: FareRideColors.muted),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final email in _recentEmails)
+                  InputChip(
+                    label: Text(email),
+                    onPressed: () {
+                      _email.value = TextEditingValue(
+                        text: email,
+                        selection: TextSelection.collapsed(offset: email.length),
+                      );
+                    },
+                    onDeleted: () => _removeRecentEmail(email),
+                  ),
+              ],
+            ),
+          ],
           AuthTextField(
             label: 'Password',
             controller: _password,

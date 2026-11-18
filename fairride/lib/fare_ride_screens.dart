@@ -52,6 +52,7 @@ part 'screens/fare_split_screen.dart';
 part 'screens/ride_details_screen.dart';
 part 'screens/driver_profile_screen.dart';
 part 'screens/admin_review_screen.dart';
+part 'screens/account_screen.dart';
 
 class FareRideApp extends StatelessWidget {
   const FareRideApp({super.key});
@@ -71,6 +72,7 @@ abstract final class FareRideRoutes {
   static const login = '/login';
   static const driverSignup = '/driver-signup';
   static const riderDashboard = '/rider';
+  static const driverDashboard = '/driver';
   static const postRide = '/post-ride';
   static const requestRide = '/request-ride';
   static const pickupOrder = '/pickup-order';
@@ -83,6 +85,7 @@ abstract final class FareRideRoutes {
     driverSignup: (_) =>
         const FareRideLoginScreen(initialRole: 'driver', initialSignup: true),
     riderDashboard: (_) => const FareRideRiderDashboardScreen(),
+    driverDashboard: (_) => const FareRideDriverDashboardScreen(),
     postRide: (_) => const FareRidePostRideScreen(),
     requestRide: (_) => const FareRideRequestRideScreen(),
     pickupOrder: (_) => const FareRidePickupOrderScreen(),

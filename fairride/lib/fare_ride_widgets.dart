@@ -121,14 +121,17 @@ class FareRidePage extends StatelessWidget {
     this.bottom,
     this.showBack = true,
     this.navigationIndex,
+    this.role = 'rider',
   });
   final String title;
   final Widget child;
   final Widget? bottom;
   final bool showBack;
   final int? navigationIndex;
+  final String role;
   @override
   Widget build(BuildContext context) => Scaffold(
+    drawer: FareRideAccountDrawer(isDriver: role == 'driver'),
     appBar: AppBar(
       leading: showBack
           ? IconButton(
@@ -137,6 +140,15 @@ class FareRidePage extends StatelessWidget {
             )
           : null,
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      actions: [
+        Builder(
+          builder: (scaffoldContext) => IconButton(
+            tooltip: 'Open menu',
+            onPressed: () => Scaffold.of(scaffoldContext).openDrawer(),
+            icon: const Icon(Icons.menu_rounded),
+          ),
+        ),
+      ],
     ),
     body: SafeArea(child: child),
     bottomNavigationBar: Column(
@@ -151,7 +163,11 @@ class FareRidePage extends StatelessWidget {
             ),
           ),
         if (navigationIndex != null)
-          fareRideBottomNav(context, selected: navigationIndex!),
+          fareRideBottomNav(
+            context,
+            selected: navigationIndex!,
+            role: role,
+          ),
       ],
     ),
   );
@@ -309,36 +325,64 @@ void fareRideSnack(BuildContext context, String message) {
     );
 }
 
+Future<void> fareRideSignOut(BuildContext context) async {
+  await AuthService.instance.signOut();
+  if (!context.mounted) return;
+  Navigator.pushNamedAndRemoveUntil(
+    context,
+    FareRideRoutes.authGate,
+    (_) => false,
+  );
+}
+
 String? fareRideRequired(String? value) =>
     (value == null || value.trim().isEmpty)
     ? 'Please fill out this field'
     : null;
 
-Widget fareRideBottomNav(BuildContext context, {required int selected}) =>
-    NavigationBar(
+Widget fareRideBottomNav(
+  BuildContext context, {
+  required int selected,
+  String role = 'rider',
+}) => NavigationBar(
       selectedIndex: selected,
       onDestinationSelected: (index) {
         if (index == selected) return;
-        final route = switch (index) {
-          0 => FareRideRoutes.riderDashboard,
-          1 => FareRideRoutes.requestRide,
-          _ => FareRideRoutes.fareSplit,
-        };
+        final route = role == 'driver'
+            ? (index == 0 ? FareRideRoutes.driverDashboard : FareRideRoutes.postRide)
+            : switch (index) {
+                0 => FareRideRoutes.riderDashboard,
+                1 => FareRideRoutes.requestRide,
+                _ => FareRideRoutes.fareSplit,
+              };
         Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
       },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home_rounded),
-          label: 'Home',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.search_rounded),
-          label: 'Find ride',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          label: 'Fare split',
-        ),
-      ],
+      destinations: role == 'driver'
+          ? const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.add_road_outlined),
+                selectedIcon: Icon(Icons.add_road),
+                label: 'Post ride',
+              ),
+            ]
+          : const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.search_rounded),
+                label: 'Find ride',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.receipt_long_outlined),
+                label: 'Fare split',
+              ),
+            ],
     );

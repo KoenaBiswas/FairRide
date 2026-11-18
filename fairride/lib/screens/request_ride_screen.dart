@@ -193,30 +193,47 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                                 final isActive =
                                     status == RequestStatus.pending ||
                                     status == RequestStatus.accepted;
-                                return Align(
-                                  alignment: Alignment.centerRight,
-                                  child: isActive
-                                      ? OutlinedButton(
-                                          onPressed:
-                                              status == RequestStatus.accepted
-                                              ? null
-                                              : () => _cancelRequest(ride.id),
-                                          child: Text(
-                                            status == RequestStatus.accepted
-                                                ? 'Accepted'
-                                                : 'Cancel request',
-                                          ),
-                                        )
-                                      : FilledButton(
-                                          onPressed: _busyRideId != null
-                                              ? null
-                                              : () => _request(ride),
-                                          child: Text(
-                                            _busyRideId == ride.id
-                                                ? 'Sending…'
-                                                : 'Request seat',
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    if (isActive)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          ride.status == RideStatus.inProgress
+                                              ? 'Ride started'
+                                              : status == RequestStatus.accepted
+                                              ? 'Driver accepted your request'
+                                              : 'Waiting for the driver to accept',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: FareRideColors.greenDark,
                                           ),
                                         ),
+                                      ),
+                                    isActive
+                                        ? OutlinedButton(
+                                            onPressed:
+                                                status == RequestStatus.accepted
+                                                ? null
+                                                : () => _cancelRequest(ride.id),
+                                            child: Text(
+                                              status == RequestStatus.accepted
+                                                  ? 'Accepted'
+                                                  : 'Cancel request',
+                                            ),
+                                          )
+                                        : FilledButton(
+                                            onPressed: _busyRideId != null
+                                                ? null
+                                                : () => _request(ride),
+                                            child: Text(
+                                              _busyRideId == ride.id
+                                                  ? 'Sending…'
+                                                  : 'Request seat',
+                                            ),
+                                          ),
+                                  ],
                                 );
                               },
                             ),

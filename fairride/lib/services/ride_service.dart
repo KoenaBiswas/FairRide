@@ -331,9 +331,21 @@ class RideService {
     final user = _user;
     final profile =
         (await _db.collection('users').doc(user.uid).get()).data() ?? {};
-    if (profile['verificationStatus'] != 'verified') {
+    final docs = await _db
+        .collection('users')
+        .doc(user.uid)
+        .collection('documents')
+        .get();
+    final submittedDocumentIds = {
+      for (final doc in docs.docs)
+        if (doc.data()['imageBase64'] is String &&
+            (doc.data()['imageBase64'] as String).isNotEmpty)
+          doc.id,
+    };
+    const requiredDocuments = ['licence', 'rc', 'selfie'];
+    if (!requiredDocuments.every(submittedDocumentIds.contains)) {
       throw RideException(
-        'Your driver profile must be verified before posting rides.',
+        'Submit your driving licence, vehicle RC, and selfie in your driver profile before posting a ride.',
       );
     }
     if (seats < 1 || seats > 6) throw RideException('Seats must be 1 to 6.');
@@ -603,12 +615,16 @@ class RideService {
   Future<void> markPaid(
     String rideId,
     String riderId, {
-    String utr = '',
+    required String utr,
   }) async {
+    final paymentReference = utr.trim();
+    if (paymentReference.isEmpty) {
+      throw RideException('Enter your UTR or payment reference number.');
+    }
     await _rides.doc(rideId).collection('requests').doc(riderId).update({
       'paymentStatus': 'marked_paid',
       'paymentMethod': 'upi_qr',
-      'utr': utr.trim(),
+      'utr': paymentReference,
       'paidAt': FieldValue.serverTimestamp(),
     });
     await _history(riderId)

@@ -33,6 +33,13 @@ class FareRideRideDetailsScreen extends StatelessWidget {
             if (!requestSnap.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
+            RideRequest? myRequest;
+            for (final request in requestSnap.data!) {
+              if (request.riderId == uid) {
+                myRequest = request;
+                break;
+              }
+            }
             final riders =
                 requestSnap.data!
                     .where(
@@ -64,16 +71,17 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                             : route.legKm,
                         ride.totalFare,
                       );
-                RideRequest? me;
-                for (final rider in riders) {
-                  if (rider.riderId == uid) {
-                    me = rider;
-                    break;
-                  }
-                }
+                final me = myRequest;
                 return ListView(
                   padding: const EdgeInsets.all(18),
                   children: [
+                    _RideProgressCard(
+                      ride: ride,
+                      isDriver: isDriver,
+                      myRequest: myRequest,
+                      acceptedRiderCount: riders.length,
+                    ),
+                    const SizedBox(height: 12),
                     if (route == null)
                       const SizedBox(
                         height: 180,
@@ -265,5 +273,60 @@ class FareRideRideDetailsScreen extends StatelessWidget {
         ),
       );
     },
+  );
+}
+
+class _RideProgressCard extends StatelessWidget {
+  const _RideProgressCard({
+    required this.ride,
+    required this.isDriver,
+    required this.myRequest,
+    required this.acceptedRiderCount,
+  });
+
+  final Ride ride;
+  final bool isDriver;
+  final RideRequest? myRequest;
+  final int acceptedRiderCount;
+
+  String get _label {
+    if (ride.status == RideStatus.inProgress) return 'Ride started';
+    if (ride.status == RideStatus.completed) return 'Ride completed';
+    if (ride.status == RideStatus.cancelled) return 'Ride cancelled';
+    if (isDriver) {
+      return acceptedRiderCount == 0
+          ? 'Waiting for rider requests'
+          : 'Ride not started · $acceptedRiderCount rider(s) accepted';
+    }
+    return switch (myRequest?.status) {
+      RequestStatus.pending => 'Waiting for the driver to accept',
+      RequestStatus.accepted || RequestStatus.pickedUp =>
+        'Driver accepted your request',
+      RequestStatus.rejected => 'Driver declined your request',
+      RequestStatus.cancelled => 'Your request was cancelled',
+      _ => 'No active seat request',
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) => FareRideCard(
+    child: Row(
+      children: [
+        const Icon(Icons.radio_button_checked, color: FareRideColors.green),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Current ride status',
+                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+              ),
+              Text(_label, style: const TextStyle(fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ),
+      ],
+    ),
   );
 }

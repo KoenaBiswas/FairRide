@@ -112,6 +112,8 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
   @override
   Widget build(BuildContext context) => FareRidePage(
     title: 'Post a ride',
+    navigationIndex: 1,
+    role: 'driver',
     bottom: FareRidePrimaryButton(
       label: _busy ? 'Publishing…' : 'Publish ride',
       icon: Icons.check_rounded,
