@@ -508,7 +508,12 @@ Future work includes background live tracking, integration with a real payment g
 
 ## Team and course
 
-FareRide is a two-person Mobile Computing lab project at Indira Gandhi Delhi Technical University for Women (IGDTUW).
+FareRide is a five-person Mobile Computing lab project at Indira Gandhi Delhi Technical University for Women (IGDTUW).
 
 - Jyoti Soni
-- Koena
+- Kavya Chaudhari
+- Koena Biswas
+- Lavanaya Khosla
+- Manasvi
+
+
