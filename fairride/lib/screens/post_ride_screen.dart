@@ -1,12 +1,12 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRidePostRideScreen extends StatefulWidget {
-  const FareRidePostRideScreen({super.key});
+class FairRidePostRideScreen extends StatefulWidget {
+  const FairRidePostRideScreen({super.key});
   @override
-  State<FareRidePostRideScreen> createState() => _FareRidePostRideScreenState();
+  State<FairRidePostRideScreen> createState() => _FairRidePostRideScreenState();
 }
 
-class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
+class _FairRidePostRideScreenState extends State<FairRidePostRideScreen> {
   final _form = GlobalKey<FormState>();
   final _fare = TextEditingController(text: '150');
   LocationChoice? _start;
@@ -39,7 +39,7 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
   Future<void> _publish() async {
     if (!_form.currentState!.validate()) return;
     if (_start == null || _destination == null) {
-      fareRideSnack(
+      fairRideSnack(
         context,
         'Choose a starting point and destination from the place options.',
       );
@@ -75,11 +75,11 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
       if (!mounted) return;
       Navigator.pushNamed(
         context,
-        FareRideRoutes.pickupOrder,
+        FairRideRoutes.pickupOrder,
         arguments: rideId,
       );
     } catch (error) {
-      if (mounted) fareRideSnack(context, 'Could not post ride: $error');
+      if (mounted) fairRideSnack(context, 'Could not post ride: $error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -110,11 +110,11 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => FareRidePage(
+  Widget build(BuildContext context) => FairRidePage(
     title: 'Post a ride',
     navigationIndex: 1,
     role: 'driver',
-    bottom: FareRidePrimaryButton(
+    bottom: FairRidePrimaryButton(
       label: _busy ? 'Publishing…' : 'Publish ride',
       icon: Icons.check_rounded,
       onPressed: _busy ? null : _publish,
@@ -129,13 +129,13 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
             style: TextStyle(
               fontSize: 26,
               fontWeight: FontWeight.w900,
-              color: FareRideColors.ink,
+              color: FairRideColors.ink,
             ),
           ),
           const SizedBox(height: 6),
           const Text(
             'Search for a place or use your current location. Select a result to save its coordinates.',
-            style: TextStyle(color: FareRideColors.muted),
+            style: TextStyle(color: FairRideColors.muted),
           ),
           const SizedBox(height: 20),
           LocationPickerField(
@@ -148,10 +148,10 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
             onSelected: (place) => setState(() => _destination = place),
           ),
           const SizedBox(height: 14),
-          FareRideCard(
+          FairRideCard(
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.schedule, color: FareRideColors.green),
+              leading: const Icon(Icons.schedule, color: FairRideColors.green),
               title: const Text('Departure'),
               subtitle: Text(DateFormat.yMMMd().add_jm().format(_departure)),
               trailing: const Icon(Icons.edit),
@@ -162,7 +162,7 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
           Row(
             children: [
               Expanded(
-                child: FareRideField(
+                child: FairRideField(
                   label: 'Total ride fare',
                   hint: '150.00',
                   controller: _fare,
@@ -178,12 +178,12 @@ class _FareRidePostRideScreenState extends State<FareRidePostRideScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FareRideCard(
+                child: FairRideCard(
                   child: Column(
                     children: [
                       const Text(
                         'Seats',
-                        style: TextStyle(color: FareRideColors.muted),
+                        style: TextStyle(color: FairRideColors.muted),
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,

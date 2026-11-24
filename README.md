@@ -1,10 +1,14 @@
-# FareRide
+# FairRide
 
-FareRide is a Flutter campus carpool app that helps riders find shared rides and drivers coordinate pickups, fares, and payments.
+FairRide is a Flutter campus carpool app that helps riders find shared rides and drivers coordinate pickups, fares, and payments.
+
+## Android debug APK
+
+[Download the FairRide Android debug APK](https://github.com/KoenaBiswas/FairRide/releases/download/v1.0.0-android-debug-2026-11-24/FairRide-android-debug.apk).
 
 ## Problem and idea
 
-Students traveling across campus and nearby areas may have overlapping trips but no simple way to share seats and costs. FareRide lets a driver post a route and available seats, lets riders request to join, and records the ride and fare allocation in Firebase. Payments are made outside the app through UPI; FareRide records a rider-submitted reference and the driver's confirmation.
+Students traveling across campus and nearby areas may have overlapping trips but no simple way to share seats and costs. FairRide lets a driver post a route and available seats, lets riders request to join, and records the ride and fare allocation in Firebase. Payments are made outside the app through UPI; FairRide records a rider-submitted reference and the driver's confirmation.
 
 ## Contents
 
@@ -16,6 +20,7 @@ Students traveling across campus and nearby areas may have overlapping trips but
 - [Firestore data model](#firestore-data-model)
 - [Firestore security rules](#firestore-security-rules)
 - [Setup and run](#setup-and-run)
+- [Android debug APK](#android-debug-apk)
 - [Test data](#test-data)
 - [Known limitations and future work](#known-limitations-and-future-work)
 - [Team and course](#team-and-course)
@@ -33,7 +38,7 @@ Each row describes behavior found in this repository. The Rider and Driver colum
 | Email verification gate | Yes | Yes | `authenticate/auth_service.dart`, `authenticate/auth_wrapper.dart` |
 | Role selection and role check at login | Rider role | Driver role | `screens/login_screen.dart`, `authenticate/auth_service.dart` |
 | One role per account | A stored profile has one `role`; sign-in rejects a mismatched selected role | Same | `authenticate/auth_service.dart`, `authenticate/auth_wrapper.dart` |
-| Logout | Signs out Firebase Auth; Google provider sign-out is not explicitly called | Same | `authenticate/auth_service.dart`, `fare_ride_widgets.dart` |
+| Logout | Signs out Firebase Auth; Google provider sign-out is not explicitly called | Same | `authenticate/auth_service.dart`, `fair_ride_widgets.dart` |
 
 ### Driver onboarding
 
@@ -81,25 +86,25 @@ Each row describes behavior found in this repository. The Rider and Driver colum
 | Feature | Rider | Driver | Where in code |
 |---|---|---|---|
 | Role-specific home page with upcoming/completed ride summaries | Yes | Yes | `screens/rider_dashboard_screen.dart` |
-| Home insights for spending, completed rides, savings and frequent route | Yes | — | `screens/account_screen.dart` (`FareRideHomeInsights`) |
-| Home insights for earnings, completed rides, riders carried and monthly totals | — | Yes | `screens/account_screen.dart` (`FareRideHomeInsights`) |
-| Monthly chart | Yes | Yes | `screens/account_screen.dart` (`FareRideHomeInsights`) |
+| Home insights for spending, completed rides, savings and frequent route | Yes | — | `screens/account_screen.dart` (`FairRideHomeInsights`) |
+| Home insights for earnings, completed rides, riders carried and monthly totals | — | Yes | `screens/account_screen.dart` (`FairRideHomeInsights`) |
+| Monthly chart | Yes | Yes | `screens/account_screen.dart` (`FairRideHomeInsights`) |
 
 ### Navigation and profile
 
 | Feature | Rider | Driver | Where in code |
 |---|---|---|---|
-| Side drawer with profile, previous rides, previous transactions, and logout | Yes | Yes | `screens/account_screen.dart`, `fare_ride_widgets.dart` |
+| Side drawer with profile, previous rides, previous transactions, and logout | Yes | Yes | `screens/account_screen.dart`, `fair_ride_widgets.dart` |
 | Driver profile and documents/UPI editor | — | Yes | `screens/driver_profile_screen.dart` |
-| Bottom navigation: Home, Find ride, Fare split | Yes | — | `fare_ride_widgets.dart` |
-| Bottom navigation: Home and Post ride | — | Yes | `fare_ride_widgets.dart` |
+| Bottom navigation: Home, Find ride, Fare split | Yes | — | `fair_ride_widgets.dart` |
+| Bottom navigation: Home and Post ride | — | Yes | `fair_ride_widgets.dart` |
 | Ride details view | Yes | Yes | `screens/ride_details_screen.dart` |
 
 ### Convenience
 
 | Feature | Rider | Driver | Where in code |
 |---|---|---|---|
-| System keyboard autofill hints for form fields | Yes | Yes | `fare_ride_widgets.dart`, `screens/login_screen.dart` |
+| System keyboard autofill hints for form fields | Yes | Yes | `fair_ride_widgets.dart`, `screens/login_screen.dart` |
 | Recent email, phone, and place suggestions | Yes | Yes | `services/recent_store.dart`, `screens/login_screen.dart`, `widgets/location_picker_field.dart` |
 | Remember last selected role and post-ride seat/fare defaults | Yes | Yes | `services/recent_store.dart` |
 | Prefill a Google profile's name and email; additional profile fields can be completed in the UI | Yes | Yes, if chosen as new Google role | `authenticate/auth_service.dart`, `screens/login_screen.dart` |
@@ -209,7 +214,7 @@ sequenceDiagram
   Rider->>App: Open completed ride fare
   App->>Firestore: Read fare, driver UPI ID, and payment status
   App-->>Rider: Show UPI QR or launch UPI app
-  Rider->>Driver: Pay outside FareRide
+  Rider->>Driver: Pay outside FairRide
   Rider->>App: Enter UTR and select I have paid
   App->>Firestore: Set marked_paid, UTR, and paidAt
   Firestore-->>Driver: Updated payment status
@@ -263,10 +268,10 @@ flowchart TD
   Driver --> DriverProfile
   Login --> Admin[admin_review_screen.dart when profile is admin]
   PickupMap --> Details
-  DriverPart[driver_signup_screen.dart part file] -. included in .-> Registry[fare_ride_screens.dart]
+  DriverPart[driver_signup_screen.dart part file] -. included in .-> Registry[fair_ride_screens.dart]
 ```
 
-`driver_signup_screen.dart` exists as a part file; the registered `/driver-signup` route currently opens `FareRideLoginScreen` with driver sign-up selected, so the driver signup UI is rendered by `login_screen.dart`. `pickup_order_screen.dart` manages a ride's requests and offers the pickup map; `account_screen.dart` also contains profile, history, and insight widgets.
+`driver_signup_screen.dart` exists as a part file; the registered `/driver-signup` route currently opens `FairRideLoginScreen` with driver sign-up selected, so the driver signup UI is rendered by `login_screen.dart`. `pickup_order_screen.dart` manages a ride's requests and offers the pickup map; `account_screen.dart` also contains profile, history, and insight widgets.
 
 ### Firestore data model
 
@@ -385,15 +390,15 @@ Direct dependency constraints below are copied from `fairride/pubspec.yaml`.
 
 ## Architecture and source layout
 
-The Flutter package is in `fairride/`; Firebase rules are at the outer repository root. `main.dart` initializes Firebase and opens `FareRideApp`. `AuthWrapper` listens to Firebase Auth and the user's Firestore profile, then selects the landing, verification, rider, driver, or admin screen. Screens call `RideService` for Firestore reads/writes, `RoutingService` for routes, and `RecentStore` for device-local suggestions. Ride completion calls `fare_calculator.dart` and writes each allocated fare to the request and history records.
+The Flutter package is in `fairride/`; Firebase rules are at the outer repository root. `main.dart` initializes Firebase and opens `FairRideApp`. `AuthWrapper` listens to Firebase Auth and the user's Firestore profile, then selects the landing, verification, rider, driver, or admin screen. Screens call `RideService` for Firestore reads/writes, `RoutingService` for routes, and `RecentStore` for device-local suggestions. Ride completion calls `fare_calculator.dart` and writes each allocated fare to the request and history records.
 
 ```text
 fairride/lib/
 ├── README.md                         This project guide
 ├── main.dart                         Firebase initialization and app entry point
-├── fare_ride_screens.dart            App root, route table, imports, and screen library
-├── fare_ride_theme.dart              Shared color palette and Material theme
-├── fare_ride_widgets.dart            Shared forms, cards, navigation, and account drawer helpers
+├── fair_ride_screens.dart            App root, route table, imports, and screen library
+├── fair_ride_theme.dart              Shared color palette and Material theme
+├── fair_ride_widgets.dart            Shared forms, cards, navigation, and account drawer helpers
 ├── firebase_options.dart             Android Firebase client options
 ├── authenticate/
 │   ├── auth_service.dart             Firebase Auth, profile creation, role checks, sign-in/out
@@ -431,7 +436,7 @@ fairride/lib/
     └── location_picker_field.dart    Place search, current location, map pin, and recent places
 ```
 
-The screen files in `screens/` are Dart `part` files included by `fare_ride_screens.dart` (except standalone `pickup_map_screen.dart`), rather than independent libraries. `fare_ride_screens.dart` is the route registry. Some screens are opened through `MaterialPageRoute` in addition to named routes.
+The screen files in `screens/` are Dart `part` files included by `fair_ride_screens.dart` (except standalone `pickup_map_screen.dart`), rather than independent libraries. `fair_ride_screens.dart` is the route registry. Some screens are opened through `MaterialPageRoute` in addition to named routes.
 
 ## Firestore data model
 
@@ -508,7 +513,7 @@ Future work includes background live tracking, integration with a real payment g
 
 ## Team and course
 
-FareRide is a five-person Mobile Computing lab project at Indira Gandhi Delhi Technical University for Women (IGDTUW).
+FairRide is a five-person Mobile Computing lab project at Indira Gandhi Delhi Technical University for Women (IGDTUW).
 
 - Jyoti Soni
 - Kavya Chaudhari

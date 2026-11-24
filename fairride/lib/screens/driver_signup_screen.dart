@@ -1,8 +1,8 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideDriverSignupScreen extends StatelessWidget {
-  const FareRideDriverSignupScreen({super.key});
+class FairRideDriverSignupScreen extends StatelessWidget {
+  const FairRideDriverSignupScreen({super.key});
   @override
   Widget build(BuildContext context) =>
-      const FareRideLoginScreen(initialRole: 'driver', initialSignup: true);
+      const FairRideLoginScreen(initialRole: 'driver', initialSignup: true);
 }

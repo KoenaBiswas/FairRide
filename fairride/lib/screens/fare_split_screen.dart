@@ -1,13 +1,13 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideFareSplitScreen extends StatefulWidget {
-  const FareRideFareSplitScreen({super.key});
+class FairRideFareSplitScreen extends StatefulWidget {
+  const FairRideFareSplitScreen({super.key});
   @override
-  State<FareRideFareSplitScreen> createState() =>
-      _FareRideFareSplitScreenState();
+  State<FairRideFareSplitScreen> createState() =>
+      _FairRideFareSplitScreenState();
 }
 
-class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
+class _FairRideFareSplitScreenState extends State<FairRideFareSplitScreen> {
   bool _busy = false;
   String? _completedRide;
 
@@ -17,7 +17,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
       await RideService.instance.completeRide(rideId);
       if (mounted) setState(() => _completedRide = rideId);
     } catch (error) {
-      if (mounted) fareRideSnack(context, 'Could not complete ride: $error');
+      if (mounted) fairRideSnack(context, 'Could not complete ride: $error');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -32,13 +32,13 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
       'am': amount.toStringAsFixed(2),
       'cu': 'INR',
       'tn':
-          'FareRide ${ride.id.length > 8 ? ride.id.substring(0, 8) : ride.id}',
+          'FairRide ${ride.id.length > 8 ? ride.id.substring(0, 8) : ride.id}',
     },
   );
 
   Future<void> _pay(double amount, Ride ride) async {
     if (ride.driverUpiId.isEmpty) {
-      if (mounted) fareRideSnack(context, 'The driver has not added a UPI ID.');
+      if (mounted) fairRideSnack(context, 'The driver has not added a UPI ID.');
       return;
     }
     try {
@@ -47,10 +47,10 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
         mode: LaunchMode.externalApplication,
       );
       if (!launched && mounted) {
-        fareRideSnack(context, 'No UPI app could open this payment link.');
+        fairRideSnack(context, 'No UPI app could open this payment link.');
       }
     } catch (error) {
-      if (mounted) fareRideSnack(context, 'Could not open a UPI app: $error');
+      if (mounted) fairRideSnack(context, 'Could not open a UPI app: $error');
     }
   }
 
@@ -59,7 +59,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
     final rideId =
         _completedRide ?? ModalRoute.of(context)?.settings.arguments as String?;
     if (rideId == null) {
-      return const FareRidePage(
+      return const FairRidePage(
         title: 'Fare split',
         navigationIndex: 2,
         child: _RideFareChooser(),
@@ -71,7 +71,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
       builder: (context, rideSnapshot) {
         final ride = rideSnapshot.data;
         if (rideSnapshot.hasError) {
-          return const FareRidePage(
+          return const FairRidePage(
             title: 'Fare split',
             child: Center(
               child: Text(
@@ -81,13 +81,13 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
           );
         }
         if (ride == null) {
-          return const FareRidePage(
+          return const FairRidePage(
             title: 'Fare split',
             child: Center(child: CircularProgressIndicator()),
           );
         }
         final isDriver = uid == ride.driverId;
-        return FareRidePage(
+        return FairRidePage(
           title: 'Fare split',
           child: ListView(
             padding: const EdgeInsets.all(20),
@@ -97,7 +97,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                 style: TextStyle(
                   fontSize: 25,
                   fontWeight: FontWeight.w900,
-                  color: FareRideColors.ink,
+                  color: FairRideColors.ink,
                 ),
               ),
               const SizedBox(height: 8),
@@ -107,16 +107,16 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
               ),
               Text(
                 'Total fare ${formatRupees(ride.totalFare)} · ${ride.status}',
-                style: const TextStyle(color: FareRideColors.muted),
+                style: const TextStyle(color: FairRideColors.muted),
               ),
               const SizedBox(height: 18),
-              const FareRideSectionTitle('Accepted rider shares'),
+              const FairRideSectionTitle('Accepted rider shares'),
               const SizedBox(height: 8),
               StreamBuilder<List<RideRequest>>(
                 stream: RideService.instance.watchRequests(rideId),
                 builder: (context, requestSnapshot) {
                   if (requestSnapshot.hasError) {
-                    return const FareRideCard(
+                    return const FairRideCard(
                       child: Text('Could not load rider fares.'),
                     );
                   }
@@ -132,7 +132,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                       )
                       .toList();
                   if (riders.isEmpty) {
-                    return const FareRideCard(
+                    return const FairRideCard(
                       child: Text(
                         'No accepted riders yet. Accepted riders will appear here with their estimated share.',
                       ),
@@ -178,7 +178,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                       if (isDriver && ride.status == RideStatus.completed)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: FareRideCard(
+                          child: FairRideCard(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -220,7 +220,7 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                   isDriver &&
                   ride.status == RideStatus.inProgress) ...[
                 const SizedBox(height: 16),
-                FareRidePrimaryButton(
+                FairRidePrimaryButton(
                   label: _busy
                       ? 'Saving fares…'
                       : 'Complete ride and save fares',
@@ -234,8 +234,8 @@ class _FareRideFareSplitScreenState extends State<FareRideFareSplitScreen> {
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
-                    'FareRide cannot see your bank payment. The driver confirms receipt after checking their account.',
-                    style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                    'FairRide cannot see your bank payment. The driver confirms receipt after checking their account.',
+                    style: TextStyle(color: FairRideColors.muted, fontSize: 12),
                   ),
                 ),
             ],
@@ -273,7 +273,7 @@ class _RiderShareCard extends StatelessWidget {
     final isSaved = rider.fare != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: FareRideCard(
+      child: FairRideCard(
         child: Column(
           children: [
             Row(
@@ -288,7 +288,7 @@ class _RiderShareCard extends StatelessWidget {
                       ),
                       Text(
                         '${rider.pickupName} · ${rider.status}',
-                        style: const TextStyle(color: FareRideColors.muted),
+                        style: const TextStyle(color: FairRideColors.muted),
                       ),
                     ],
                   ),
@@ -300,14 +300,14 @@ class _RiderShareCard extends StatelessWidget {
                       formatRupees(amount),
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
-                        color: FareRideColors.greenDark,
+                        color: FairRideColors.greenDark,
                       ),
                     ),
                     Text(
                       isSaved ? 'saved' : 'estimated',
                       style: const TextStyle(
                         fontSize: 11,
-                        color: FareRideColors.muted,
+                        color: FairRideColors.muted,
                       ),
                     ),
                   ],
@@ -348,7 +348,7 @@ class _RiderShareCard extends StatelessWidget {
                           await onMarkPaid(value);
                         } catch (error) {
                           if (context.mounted) {
-                            fareRideSnack(
+                            fairRideSnack(
                               context,
                               'Could not save payment: $error',
                             );
@@ -360,8 +360,8 @@ class _RiderShareCard extends StatelessWidget {
                   ],
                 ),
               const Text(
-                'FareRide cannot see your bank payment. The driver confirms receipt after checking their account.',
-                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                'FairRide cannot see your bank payment. The driver confirms receipt after checking their account.',
+                style: TextStyle(color: FairRideColors.muted, fontSize: 12),
               ),
             ],
             if (isCurrentUser && !completed) ...[
@@ -370,13 +370,13 @@ class _RiderShareCard extends StatelessWidget {
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
                     'This share is an estimate and may change until the ride is completed.',
-                    style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                    style: TextStyle(color: FairRideColors.muted, fontSize: 12),
                   ),
                 ),
               const SizedBox(height: 8),
               const Text(
                 'Payment becomes available after the driver completes the ride.',
-                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                style: TextStyle(color: FairRideColors.muted, fontSize: 12),
               ),
             ],
           ],
@@ -476,7 +476,7 @@ class _RideFareChooser extends StatelessWidget {
                   for (final ride in snapshot.data!)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: FareRideCard(
+                      child: FairRideCard(
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text('${ride.startName} → ${ride.destName}'),
@@ -486,7 +486,7 @@ class _RideFareChooser extends StatelessWidget {
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () => Navigator.pushReplacementNamed(
                             context,
-                            FareRideRoutes.fareSplit,
+                            FairRideRoutes.fareSplit,
                             arguments: ride.id,
                           ),
                         ),
@@ -521,21 +521,21 @@ class _RecentRideHistory extends StatelessWidget {
             const Text('No current or previous rides yet.'),
             TextButton(
               onPressed: () =>
-                  Navigator.pushNamed(context, FareRideRoutes.requestRide),
+                  Navigator.pushNamed(context, FairRideRoutes.requestRide),
               child: const Text('Find or post a ride'),
             ),
           ],
         );
       }
       final ride = snapshot.data!.first;
-      return FareRideCard(
+      return FairRideCard(
         child: ListTile(
           title: Text('${ride.startName} → ${ride.destName}'),
           subtitle: Text('Last ride · ${formatRupees(ride.amount)}'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.pushNamed(
             context,
-            FareRideRoutes.fareSplit,
+            FairRideRoutes.fareSplit,
             arguments: ride.rideId,
           ),
         ),

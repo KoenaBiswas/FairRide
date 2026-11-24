@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../fare_ride_screens.dart';
+import '../fair_ride_screens.dart';
 import 'auth_service.dart';
 
 class AuthWrapper extends StatelessWidget {
@@ -16,20 +16,20 @@ class AuthWrapper extends StatelessWidget {
         return const _Loading();
       }
       final user = auth.data;
-      if (user == null) return const FareRideLandingScreen();
+      if (user == null) return const FairRideLandingScreen();
       if (!user.emailVerified) return const _VerifyEmailScreen();
       return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: AuthService.instance.userDoc(user.uid),
         builder: (context, profile) {
           final role = profile.data?.data()?['role'];
           if (profile.data?.data()?['isAdmin'] == true) {
-            return const FareRideAdminReviewScreen();
+            return const FairRideAdminReviewScreen();
           }
-          if (role == 'rider') return const FareRideRiderDashboardScreen();
-          if (role == 'driver') return const FareRideDriverDashboardScreen();
+          if (role == 'rider') return const FairRideRiderDashboardScreen();
+          if (role == 'driver') return const FairRideDriverDashboardScreen();
           if (profile.hasError) {
             return _MessageScreen(
-              message: 'Unable to load your FareRide profile. Check your connection and try again.',
+              message: 'Unable to load your FairRide profile. Check your connection and try again.',
               action: TextButton(
                 onPressed: AuthService.instance.signOut,
                 child: const Text('Sign out'),

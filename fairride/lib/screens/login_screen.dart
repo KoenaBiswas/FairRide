@@ -1,7 +1,7 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideLoginScreen extends StatefulWidget {
-  const FareRideLoginScreen({
+class FairRideLoginScreen extends StatefulWidget {
+  const FairRideLoginScreen({
     super.key,
     this.initialRole = 'rider',
     this.initialSignup = false,
@@ -9,10 +9,10 @@ class FareRideLoginScreen extends StatefulWidget {
   final String initialRole;
   final bool initialSignup;
   @override
-  State<FareRideLoginScreen> createState() => _FareRideLoginScreenState();
+  State<FairRideLoginScreen> createState() => _FairRideLoginScreenState();
 }
 
-class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
+class _FairRideLoginScreenState extends State<FairRideLoginScreen> {
   final _form = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
@@ -170,7 +170,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
-      FareRideRoutes.authGate,
+      FairRideRoutes.authGate,
       (_) => false,
     );
   }
@@ -179,8 +179,8 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
   Widget build(BuildContext context) => AuthScaffold(
     title: _signup ? 'Create account' : 'Welcome back',
     subtitle: _signup
-        ? 'Set up your FareRide profile.'
-        : 'Sign in to continue to FareRide.',
+        ? 'Set up your FairRide profile.'
+        : 'Sign in to continue to FairRide.',
     showBack: true,
     child: Form(
       key: _form,
@@ -275,7 +275,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
                 padding: EdgeInsets.only(bottom: 12),
                 child: Text(
                   'Driver profiles stay pending until an administrator checks the details and documents.',
-                  style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                  style: TextStyle(color: FairRideColors.muted, fontSize: 12),
                 ),
               ),
             ],
@@ -290,7 +290,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
             const SizedBox(height: 8),
             const Text(
               'Previous emails · tap to fill',
-              style: TextStyle(fontSize: 12, color: FareRideColors.muted),
+              style: TextStyle(fontSize: 12, color: FairRideColors.muted),
             ),
             const SizedBox(height: 6),
             Wrap(
@@ -346,7 +346,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
               child: Text(
                 _signup
                     ? 'Already have an account? Sign in'
-                    : 'New to FareRide? Create an account',
+                    : 'New to FairRide? Create an account',
               ),
             ),
           ),
@@ -377,7 +377,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
       final compressed = _compressDocument(bytes);
       if (compressed.length > 680 * 1024) {
         if (mounted) {
-          fareRideSnack(
+          fairRideSnack(
             context,
             'That image is too large after compression. Please choose a smaller image.',
           );
@@ -386,7 +386,7 @@ class _FareRideLoginScreenState extends State<FareRideLoginScreen> {
       }
       setState(() => _documents[key] = compressed);
     } catch (e) {
-      if (mounted) fareRideSnack(context, 'Could not load document image: $e');
+      if (mounted) fairRideSnack(context, 'Could not load document image: $e');
     }
   }
 

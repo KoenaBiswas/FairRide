@@ -172,7 +172,7 @@ class AuthService {
       if (!(await profile.get()).exists) {
         await profile.set({
           'uid': user.uid,
-          'name': user.displayName ?? 'FareRide user',
+          'name': user.displayName ?? 'FairRide user',
           'email': user.email ?? '',
           'phone': '',
           'role': newUserRole,

@@ -1,14 +1,14 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideDriverProfileScreen extends StatefulWidget {
-  const FareRideDriverProfileScreen({super.key});
+class FairRideDriverProfileScreen extends StatefulWidget {
+  const FairRideDriverProfileScreen({super.key});
   @override
-  State<FareRideDriverProfileScreen> createState() =>
-      _FareRideDriverProfileScreenState();
+  State<FairRideDriverProfileScreen> createState() =>
+      _FairRideDriverProfileScreenState();
 }
 
-class _FareRideDriverProfileScreenState
-    extends State<FareRideDriverProfileScreen> {
+class _FairRideDriverProfileScreenState
+    extends State<FairRideDriverProfileScreen> {
   final _upi = TextEditingController();
   final Map<String, Uint8List> _images = {};
   bool _busy = false;
@@ -44,7 +44,7 @@ class _FareRideDriverProfileScreenState
     final data = _compress(await file.readAsBytes());
     if (data.length > 680 * 1024) {
       if (mounted) {
-        fareRideSnack(
+        fairRideSnack(
           context,
           'Image remains too large for Firestore after compression.',
         );
@@ -61,7 +61,7 @@ class _FareRideDriverProfileScreenState
   ) async {
     final upi = _upi.text.trim();
     if (!RegExp(r'^[\w.-]{2,256}@[\w.-]{2,64}$').hasMatch(upi)) {
-      fareRideSnack(context, 'Enter a valid UPI ID.');
+      fairRideSnack(context, 'Enter a valid UPI ID.');
       return;
     }
     setState(() => _busy = true);
@@ -86,9 +86,9 @@ class _FareRideDriverProfileScreenState
           'rejectionReason': FieldValue.delete(),
         });
       }
-      if (mounted) fareRideSnack(context, 'Driver profile saved.');
+      if (mounted) fairRideSnack(context, 'Driver profile saved.');
     } catch (e) {
-      if (mounted) fareRideSnack(context, 'Could not save profile: $e');
+      if (mounted) fairRideSnack(context, 'Could not save profile: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -176,10 +176,10 @@ class _FareRideDriverProfileScreenState
                     'Vehicle ${data['vehicleModel'] ?? ''} · ${data['vehicleNumber'] ?? ''}',
                   ),
                   const SizedBox(height: 14),
-                  const FareRideSectionTitle('Driver documents'),
+                  const FairRideSectionTitle('Driver documents'),
                   const Text(
                     'Submit your driving licence, vehicle RC, and selfie before posting rides. Admin verification is not required to post.',
-                    style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                    style: TextStyle(color: FairRideColors.muted, fontSize: 12),
                   ),
                   for (final item in const {
                     'licence': 'Driving licence',
@@ -246,12 +246,12 @@ class _FareRideDriverProfileScreenState
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const FareRideSectionTitle('Previous rides and transactions'),
+                  const FairRideSectionTitle('Previous rides and transactions'),
                   TextButton.icon(
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => const FareRideHistoryScreen(
+                        builder: (_) => const FairRideHistoryScreen(
                           transactionsOnly: false,
                         ),
                       ),
@@ -264,16 +264,16 @@ class _FareRideDriverProfileScreenState
                       context,
                       MaterialPageRoute<void>(
                         builder: (_) =>
-                            const FareRideHistoryScreen(transactionsOnly: true),
+                            const FairRideHistoryScreen(transactionsOnly: true),
                       ),
                     ),
                     icon: const Icon(Icons.receipt_long_outlined),
                     label: const Text('Previous transactions'),
                   ),
-                  const FareRideHomeInsights(isDriver: true),
+                  const FairRideHomeInsights(isDriver: true),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
-                    onPressed: () => fareRideSignOut(context),
+                    onPressed: () => fairRideSignOut(context),
                     icon: const Icon(Icons.logout),
                     label: const Text('Log out'),
                   ),

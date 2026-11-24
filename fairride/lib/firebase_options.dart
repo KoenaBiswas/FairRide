@@ -1,4 +1,4 @@
-// Firebase config for project fareride-d30a8 (Android).
+// Firebase config for FairRide project fareride-d30a8 (Android).
 // Values come from google-services.json. Replace by re-running
 // `flutterfire configure` if you add iOS or web later.
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;

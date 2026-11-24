@@ -1,20 +1,20 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideRequestRideScreen extends StatefulWidget {
-  const FareRideRequestRideScreen({super.key});
+class FairRideRequestRideScreen extends StatefulWidget {
+  const FairRideRequestRideScreen({super.key});
   @override
-  State<FareRideRequestRideScreen> createState() =>
-      _FareRideRequestRideScreenState();
+  State<FairRideRequestRideScreen> createState() =>
+      _FairRideRequestRideScreenState();
 }
 
-class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
+class _FairRideRequestRideScreenState extends State<FairRideRequestRideScreen> {
   LocationChoice? _pickup;
   LocationChoice? _destination;
   String? _busyRideId;
 
   Future<void> _request(Ride ride) async {
     if (_pickup == null) {
-      fareRideSnack(
+      fairRideSnack(
         context,
         'Choose your pickup from the place options or use your location.',
       );
@@ -41,11 +41,11 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
         );
       }
       if (mounted) {
-        fareRideSnack(context, 'Request sent to ${ride.driverName}.');
+        fairRideSnack(context, 'Request sent to ${ride.driverName}.');
       }
     } catch (error) {
       if (mounted) {
-        fareRideSnack(context, 'Could not request this ride: $error');
+        fairRideSnack(context, 'Could not request this ride: $error');
       }
     } finally {
       if (mounted) setState(() => _busyRideId = null);
@@ -55,14 +55,14 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
   Future<void> _cancelRequest(String rideId) async {
     try {
       await RideService.instance.cancelRequest(rideId);
-      if (mounted) fareRideSnack(context, 'Ride request cancelled.');
+      if (mounted) fairRideSnack(context, 'Ride request cancelled.');
     } catch (error) {
-      if (mounted) fareRideSnack(context, '$error');
+      if (mounted) fairRideSnack(context, '$error');
     }
   }
 
   @override
-  Widget build(BuildContext context) => FareRidePage(
+  Widget build(BuildContext context) => FairRidePage(
     title: 'Find a ride',
     navigationIndex: 1,
     child: ListView(
@@ -73,13 +73,13 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
           style: TextStyle(
             fontSize: 27,
             fontWeight: FontWeight.w900,
-            color: FareRideColors.ink,
+            color: FairRideColors.ink,
           ),
         ),
         const SizedBox(height: 7),
         const Text(
           'Search for any destination. Choose a match or use your current location.',
-          style: TextStyle(color: FareRideColors.muted),
+          style: TextStyle(color: FairRideColors.muted),
         ),
         const SizedBox(height: 18),
         LocationPickerField(
@@ -92,10 +92,10 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
           onSelected: (place) => setState(() => _pickup = place),
         ),
         const SizedBox(height: 22),
-        const FareRideSectionTitle('Available rides'),
+        const FairRideSectionTitle('Available rides'),
         const SizedBox(height: 10),
         if (_destination == null)
-          const FareRideCard(
+          const FairRideCard(
             child: Text(
               'Choose a destination above to see rides ending nearby.',
             ),
@@ -109,7 +109,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
             ),
             builder: (context, snapshot) {
               if (snapshot.hasError) {
-                return const FareRideCard(
+                return const FairRideCard(
                   child: Text('Unable to load rides. Please try again.'),
                 );
               }
@@ -118,7 +118,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
               }
               final rides = snapshot.data!;
               if (rides.isEmpty) {
-                return const FareRideCard(
+                return const FairRideCard(
                   child: Text('No open rides found near this destination.'),
                 );
               }
@@ -127,7 +127,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                   for (final ride in rides)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: FareRideCard(
+                      child: FairRideCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -135,7 +135,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                               children: [
                                 const Icon(
                                   Icons.alt_route,
-                                  color: FareRideColors.green,
+                                  color: FairRideColors.green,
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -150,7 +150,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                                   formatRupees(ride.totalFare),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: FareRideColors.greenDark,
+                                    color: FairRideColors.greenDark,
                                   ),
                                 ),
                               ],
@@ -159,13 +159,13 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                             Text(
                               'Driver: ${ride.driverName} · ${ride.seatsAvailable} seats available',
                               style: const TextStyle(
-                                color: FareRideColors.muted,
+                                color: FairRideColors.muted,
                               ),
                             ),
                             Text(
                               'Departs ${DateFormat.yMMMd().add_jm().format(ride.departureTime)}',
                               style: const TextStyle(
-                                color: FareRideColors.muted,
+                                color: FairRideColors.muted,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -175,7 +175,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                                 onPressed: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => FareRideRideDetailsScreen(
+                                    builder: (_) => FairRideRideDetailsScreen(
                                       rideId: ride.id,
                                     ),
                                   ),
@@ -207,7 +207,7 @@ class _FareRideRequestRideScreenState extends State<FareRideRequestRideScreen> {
                                               : 'Waiting for the driver to accept',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            color: FareRideColors.greenDark,
+                                            color: FairRideColors.greenDark,
                                           ),
                                         ),
                                       ),

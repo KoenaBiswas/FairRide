@@ -8,8 +8,8 @@ const kLine = Color(0xFFE1E8E5);
 const kField = Color(0xFFCBD6D2);
 
 // ---------- Logo ----------
-class FareRideLogo extends StatelessWidget {
-  const FareRideLogo({super.key, this.dark = false, this.size = 22});
+class FairRideLogo extends StatelessWidget {
+  const FairRideLogo({super.key, this.dark = false, this.size = 22});
   final bool dark;
   final double size;
 
@@ -26,7 +26,7 @@ class FareRideLogo extends StatelessWidget {
           TextSpan(
             children: [
               TextSpan(
-                text: 'Fare',
+                text: 'Fair',
                 style: TextStyle(color: a),
               ),
               TextSpan(
@@ -120,7 +120,7 @@ class AuthScaffold extends StatelessWidget {
                             ),
                           ),
                         ),
-                      const FareRideLogo(dark: true, size: 24),
+                      const FairRideLogo(dark: true, size: 24),
                     ],
                   ),
                   const SizedBox(height: 24),

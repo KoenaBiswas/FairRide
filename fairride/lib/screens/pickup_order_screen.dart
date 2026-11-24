@@ -1,13 +1,13 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRidePickupOrderScreen extends StatelessWidget {
-  const FareRidePickupOrderScreen({super.key});
+class FairRidePickupOrderScreen extends StatelessWidget {
+  const FairRidePickupOrderScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final rideId = ModalRoute.of(context)?.settings.arguments as String?;
     if (rideId == null) {
-      return const FareRidePage(
+      return const FairRidePage(
         title: 'Pickup details',
         role: 'driver',
         child: Center(
@@ -20,13 +20,13 @@ class FareRidePickupOrderScreen extends StatelessWidget {
       builder: (context, rideSnap) {
         final ride = rideSnap.data;
         if (ride == null) {
-          return const FareRidePage(
+          return const FairRidePage(
             title: 'Pickup details',
             role: 'driver',
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        return FareRidePage(
+        return FairRidePage(
           title: 'Pickup details',
           role: 'driver',
           child: ListView(
@@ -42,7 +42,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 '${ride.seatsAvailable} of ${ride.seatsTotal} seats available · ${formatRupees(ride.totalFare)} total',
-                style: const TextStyle(color: FareRideColors.muted),
+                style: const TextStyle(color: FairRideColors.muted),
               ),
               Text(
                 ride.status == RideStatus.inProgress
@@ -64,14 +64,14 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => FareRideRideDetailsScreen(rideId: rideId),
+                    builder: (_) => FairRideRideDetailsScreen(rideId: rideId),
                   ),
                 ),
                 icon: const Icon(Icons.info_outline),
                 label: const Text('Ride details'),
               ),
               const SizedBox(height: 12),
-              FareRideSectionTitle(
+              FairRideSectionTitle(
                 'Rider requests · farthest pickup first',
                 trailing: Text(ride.status),
               ),
@@ -80,7 +80,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                 stream: RideService.instance.watchRequests(rideId),
                 builder: (context, requestSnap) {
                   if (requestSnap.hasError) {
-                    return const FareRideCard(
+                    return const FairRideCard(
                       child: Text('Unable to load requests.'),
                     );
                   }
@@ -89,7 +89,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                   }
                   final requests = requestSnap.data!;
                   if (requests.isEmpty) {
-                    return const FareRideCard(
+                    return const FairRideCard(
                       child: Text('No rider requests yet.'),
                     );
                   }
@@ -98,7 +98,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                       for (final request in requests)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: FareRideCard(
+                          child: FairRideCard(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -111,7 +111,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                 Text(
                                   '${request.pickupName} · ${request.distanceToDestKm.toStringAsFixed(1)} km from destination · ${requestStatusLabel(request.status)}',
                                   style: const TextStyle(
-                                    color: FareRideColors.muted,
+                                    color: FairRideColors.muted,
                                   ),
                                 ),
                                 if (request.fare != null)
@@ -136,7 +136,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                               );
                                         } catch (e) {
                                           if (context.mounted) {
-                                            fareRideSnack(context, '$e');
+                                            fairRideSnack(context, '$e');
                                           }
                                         }
                                       },
@@ -167,7 +167,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                                                 );
                                           } catch (e) {
                                             if (context.mounted) {
-                                              fareRideSnack(context, '$e');
+                                              fairRideSnack(context, '$e');
                                             }
                                           }
                                         },
@@ -196,7 +196,7 @@ class FareRidePickupOrderScreen extends StatelessWidget {
               const SizedBox(height: 16),
               if (ride.status == RideStatus.open ||
                   ride.status == RideStatus.full)
-                FareRidePrimaryButton(
+                FairRidePrimaryButton(
                   label: 'Start ride',
                   icon: Icons.play_arrow,
                   onPressed: ride.riderIds.isEmpty
@@ -241,24 +241,24 @@ class FareRidePickupOrderScreen extends StatelessWidget {
                               approximate: route.isApproximate,
                             );
                             if (route.isApproximate && context.mounted) {
-                              fareRideSnack(
+                              fairRideSnack(
                                 context,
                                 'Approximate route (offline) saved for fare estimates.',
                               );
                             }
                           } catch (e) {
-                            if (context.mounted) fareRideSnack(context, '$e');
+                            if (context.mounted) fairRideSnack(context, '$e');
                           }
                         },
                 ),
               if (ride.status == RideStatus.inProgress) ...[
                 const SizedBox(height: 10),
-                FareRidePrimaryButton(
+                FairRidePrimaryButton(
                   label: 'Complete ride and split fare',
                   icon: Icons.check,
                   onPressed: () => Navigator.pushNamed(
                     context,
-                    FareRideRoutes.fareSplit,
+                    FairRideRoutes.fareSplit,
                     arguments: rideId,
                   ),
                 ),

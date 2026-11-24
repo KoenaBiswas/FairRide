@@ -1,20 +1,20 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideRiderDashboardScreen extends StatelessWidget {
-  const FareRideRiderDashboardScreen({super.key});
+class FairRideRiderDashboardScreen extends StatelessWidget {
+  const FairRideRiderDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-    drawer: const FareRideAccountDrawer(isDriver: false),
+    drawer: const FairRideAccountDrawer(isDriver: false),
     appBar: AppBar(
-      title: const FareRideBrand(compact: true),
+      title: const FairRideBrand(compact: true),
     ),
-    bottomNavigationBar: fareRideBottomNav(context, selected: 0),
+    bottomNavigationBar: fairRideBottomNav(context, selected: 0),
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
         const Text(
-          'Welcome to FareRide',
-          style: TextStyle(color: FareRideColors.muted),
+          'Welcome to FairRide',
+          style: TextStyle(color: FairRideColors.muted),
         ),
         const SizedBox(height: 4),
         const Text(
@@ -22,21 +22,21 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w900,
-            color: FareRideColors.ink,
+            color: FairRideColors.ink,
           ),
         ),
         const SizedBox(height: 16),
-        const FareRideHomeInsights(isDriver: false),
+        const FairRideHomeInsights(isDriver: false),
         const SizedBox(height: 12),
-        FareRidePrimaryButton(
+        FairRidePrimaryButton(
           label: 'Find a ride',
           icon: Icons.search,
           onPressed: () =>
-              Navigator.pushNamed(context, FareRideRoutes.requestRide),
+              Navigator.pushNamed(context, FairRideRoutes.requestRide),
         ),
         const SizedBox(height: 8),
         const SizedBox(height: 20),
-        const FareRideSectionTitle('Your upcoming rides'),
+        const FairRideSectionTitle('Your upcoming rides'),
         const SizedBox(height: 8),
         StreamBuilder<List<Ride>>(
           stream: RideService.instance.watchMyRidesAsRider(),
@@ -46,14 +46,14 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
             }
             final rides = snap.data!;
             if (rides.isEmpty) {
-              return const FareRideCard(child: Text('No accepted rides yet.'));
+              return const FairRideCard(child: Text('No accepted rides yet.'));
             }
             return Column(
               children: [
                 for (final ride in rides)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: FareRideCard(
+                    child: FairRideCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -63,7 +63,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                           ),
                           Text(
                             'Driver ${ride.driverName} · ${ride.status == RideStatus.inProgress ? 'Ride started' : 'Driver accepted your request'} · departs ${DateFormat.yMMMd().add_jm().format(ride.departureTime)}',
-                            style: const TextStyle(color: FareRideColors.muted),
+                            style: const TextStyle(color: FairRideColors.muted),
                           ),
                           const SizedBox(height: 4),
                           Text('Total fare ${formatRupees(ride.totalFare)}'),
@@ -72,7 +72,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    FareRideRideDetailsScreen(rideId: ride.id),
+                                    FairRideRideDetailsScreen(rideId: ride.id),
                               ),
                             ),
                             icon: const Icon(Icons.info_outline),
@@ -83,7 +83,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                             child: TextButton.icon(
                               onPressed: () => Navigator.pushNamed(
                                 context,
-                                FareRideRoutes.fareSplit,
+                                FairRideRoutes.fareSplit,
                                 arguments: ride.id,
                               ),
                               icon: const Icon(Icons.receipt_long_outlined),
@@ -100,7 +100,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                                   );
                                 } catch (e) {
                                   if (context.mounted) {
-                                    fareRideSnack(context, '$e');
+                                    fairRideSnack(context, '$e');
                                   }
                                 }
                               },
@@ -116,7 +116,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
           },
         ),
         const SizedBox(height: 18),
-        const FareRideSectionTitle('Ride history'),
+        const FairRideSectionTitle('Ride history'),
         const SizedBox(height: 8),
         StreamBuilder<List<RideHistoryItem>>(
           stream: RideService.instance.watchHistory(),
@@ -126,7 +126,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
             }
             final items = snap.data!;
             if (items.isEmpty) {
-              return const FareRideCard(
+              return const FairRideCard(
                 child: Text('Completed rides will appear here.'),
               );
             }
@@ -135,7 +135,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                 for (final item in items)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: FareRideCard(
+                    child: FairRideCard(
                       child: Row(
                         children: [
                           Expanded(
@@ -151,7 +151,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                                 Text(
                                   '${DateFormat.yMMMd().format(item.completedAt)} · Payment ${item.paymentStatus.replaceAll('_', ' ')}',
                                   style: const TextStyle(
-                                    color: FareRideColors.muted,
+                                    color: FairRideColors.muted,
                                   ),
                                 ),
                               ],
@@ -170,7 +170,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                                 onPressed: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => FareRideRideDetailsScreen(
+                                    builder: (_) => FairRideRideDetailsScreen(
                                       rideId: item.rideId,
                                     ),
                                   ),
@@ -180,7 +180,7 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
                               TextButton(
                                 onPressed: () => Navigator.pushNamed(
                                   context,
-                                  FareRideRoutes.fareSplit,
+                                  FairRideRoutes.fareSplit,
                                   arguments: item.rideId,
                                 ),
                                 child: const Text('Fare details'),
@@ -200,15 +200,15 @@ class FareRideRiderDashboardScreen extends StatelessWidget {
   );
 }
 
-class FareRideDriverDashboardScreen extends StatelessWidget {
-  const FareRideDriverDashboardScreen({super.key});
+class FairRideDriverDashboardScreen extends StatelessWidget {
+  const FairRideDriverDashboardScreen({super.key});
   @override
   Widget build(BuildContext context) => Scaffold(
-    drawer: const FareRideAccountDrawer(isDriver: true),
+    drawer: const FairRideAccountDrawer(isDriver: true),
     appBar: AppBar(
-      title: const FareRideBrand(compact: true),
+      title: const FairRideBrand(compact: true),
     ),
-    bottomNavigationBar: fareRideBottomNav(
+    bottomNavigationBar: fairRideBottomNav(
       context,
       selected: 0,
       role: 'driver',
@@ -221,11 +221,11 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
           style: TextStyle(
             fontSize: 25,
             fontWeight: FontWeight.w900,
-            color: FareRideColors.ink,
+            color: FairRideColors.ink,
           ),
         ),
         const SizedBox(height: 14),
-        const FareRideHomeInsights(isDriver: true),
+        const FairRideHomeInsights(isDriver: true),
         const SizedBox(height: 12),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance
@@ -268,20 +268,20 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const FareRideDriverProfileScreen(),
+                            builder: (_) => const FairRideDriverProfileScreen(),
                           ),
                         ),
                         child: const Text('Driver profile'),
                       ),
                     ),
                   ),
-                FareRidePrimaryButton(
+                FairRidePrimaryButton(
                   label: 'Post a ride',
                   icon: Icons.add_road,
                   onPressed: documentsReady
                       ? () => Navigator.pushNamed(
                           context,
-                          FareRideRoutes.postRide,
+                          FairRideRoutes.postRide,
                         )
                       : null,
                 ),
@@ -293,7 +293,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const FareRideDriverProfileScreen(),
+              builder: (_) => const FairRideDriverProfileScreen(),
             ),
           ),
           icon: const Icon(Icons.person_outline),
@@ -301,7 +301,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const SizedBox(height: 22),
-        const FareRideSectionTitle('Your active rides'),
+        const FairRideSectionTitle('Your active rides'),
         const SizedBox(height: 8),
         StreamBuilder<List<Ride>>(
           stream: RideService.instance.watchMyRidesAsDriver(),
@@ -311,7 +311,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
             }
             final rides = snap.data!;
             if (rides.isEmpty) {
-              return const FareRideCard(
+              return const FairRideCard(
                 child: Text('You have no active rides.'),
               );
             }
@@ -320,7 +320,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                 for (final ride in rides)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: FareRideCard(
+                    child: FairRideCard(
                       child: ListTile(
                         contentPadding: EdgeInsets.zero,
                         title: Text(
@@ -335,7 +335,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) =>
-                                FareRideRideDetailsScreen(rideId: ride.id),
+                                FairRideRideDetailsScreen(rideId: ride.id),
                           ),
                         ),
                       ),
@@ -346,7 +346,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
           },
         ),
         const SizedBox(height: 18),
-        const FareRideSectionTitle('Ride history'),
+        const FairRideSectionTitle('Ride history'),
         const SizedBox(height: 8),
         StreamBuilder<List<RideHistoryItem>>(
           stream: RideService.instance.watchHistory(),
@@ -356,7 +356,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
             }
             final items = snap.data!;
             if (items.isEmpty) {
-              return const FareRideCard(
+              return const FairRideCard(
                 child: Text('Completed rides will appear here.'),
               );
             }
@@ -365,7 +365,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                 for (final item in items)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: FareRideCard(
+                    child: FairRideCard(
                       child: Row(
                         children: [
                           Expanded(
@@ -381,7 +381,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                                 Text(
                                   '${item.riders} riders · ${DateFormat.yMMMd().format(item.completedAt)}',
                                   style: const TextStyle(
-                                    color: FareRideColors.muted,
+                                    color: FairRideColors.muted,
                                   ),
                                 ),
                               ],
@@ -400,7 +400,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                                 onPressed: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => FareRideRideDetailsScreen(
+                                    builder: (_) => FairRideRideDetailsScreen(
                                       rideId: item.rideId,
                                     ),
                                   ),
@@ -410,7 +410,7 @@ class FareRideDriverDashboardScreen extends StatelessWidget {
                               TextButton(
                                 onPressed: () => Navigator.pushNamed(
                                   context,
-                                  FareRideRoutes.fareSplit,
+                                  FairRideRoutes.fareSplit,
                                   arguments: item.rideId,
                                 ),
                                 child: const Text('Fare details'),

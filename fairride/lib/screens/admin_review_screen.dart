@@ -1,7 +1,7 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideAdminReviewScreen extends StatelessWidget {
-  const FareRideAdminReviewScreen({super.key});
+class FairRideAdminReviewScreen extends StatelessWidget {
+  const FairRideAdminReviewScreen({super.key});
   Future<void> _decision(BuildContext context, String uid, bool approve) async {
     var reason = '';
     if (!approve) {

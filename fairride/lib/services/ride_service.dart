@@ -41,7 +41,7 @@ class RideService {
     final role = data?['role'] as String?;
     if (role != 'rider' && role != 'driver') {
       throw RideException(
-        'Your FareRide profile needs a rider or driver role.',
+        'Your FairRide profile needs a rider or driver role.',
       );
     }
 

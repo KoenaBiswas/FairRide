@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:fairride/fare_ride_screens.dart';
+import 'package:fairride/fair_ride_screens.dart';
 
 void main() {
   testWidgets('rider can navigate from landing to fare split', (tester) async {
-    await tester.pumpWidget(const FareRideApp());
+    await tester.pumpWidget(const FairRideApp());
 
     await tester.ensureVisible(find.text('Get started'));
     await tester.tap(find.text('Get started'));
@@ -33,7 +33,7 @@ void main() {
   testWidgets('driver can navigate through posting and pickup details', (
     tester,
   ) async {
-    await tester.pumpWidget(const FareRideApp());
+    await tester.pumpWidget(const FairRideApp());
 
     await tester.ensureVisible(find.text('Get started'));
     await tester.tap(find.text('Get started'));

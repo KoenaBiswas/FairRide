@@ -1,7 +1,7 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideAccountDrawer extends StatelessWidget {
-  const FareRideAccountDrawer({super.key, required this.isDriver});
+class FairRideAccountDrawer extends StatelessWidget {
+  const FairRideAccountDrawer({super.key, required this.isDriver});
 
   final bool isDriver;
 
@@ -18,7 +18,7 @@ class FareRideAccountDrawer extends StatelessWidget {
         child: Column(
           children: [
             if (uid == null)
-              const DrawerHeader(child: FareRideBrand())
+              const DrawerHeader(child: FairRideBrand())
             else
               StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                 stream: AuthService.instance.userDoc(uid),
@@ -27,7 +27,7 @@ class FareRideAccountDrawer extends StatelessWidget {
                   return UserAccountsDrawerHeader(
                     margin: EdgeInsets.zero,
                     decoration: const BoxDecoration(
-                      color: FareRideColors.greenDark,
+                      color: FairRideColors.greenDark,
                     ),
                     accountName: Text(
                       data['name'] ?? FirebaseAuth.instance.currentUser?.displayName ?? (isDriver ? 'Driver' : 'Rider'),
@@ -37,7 +37,7 @@ class FareRideAccountDrawer extends StatelessWidget {
                     ),
                     currentAccountPicture: const CircleAvatar(
                       backgroundColor: Colors.white,
-                      child: Icon(Icons.person, color: FareRideColors.greenDark),
+                      child: Icon(Icons.person, color: FairRideColors.greenDark),
                     ),
                   );
                 },
@@ -48,8 +48,8 @@ class FareRideAccountDrawer extends StatelessWidget {
               onTap: () => _open(
                 context,
                 isDriver
-                    ? const FareRideDriverProfileScreen()
-                    : const FareRideRiderProfileScreen(),
+                    ? const FairRideDriverProfileScreen()
+                    : const FairRideRiderProfileScreen(),
               ),
             ),
             ListTile(
@@ -57,7 +57,7 @@ class FareRideAccountDrawer extends StatelessWidget {
               title: const Text('Previous rides'),
               onTap: () => _open(
                 context,
-                const FareRideHistoryScreen(transactionsOnly: false),
+                const FairRideHistoryScreen(transactionsOnly: false),
               ),
             ),
             ListTile(
@@ -65,7 +65,7 @@ class FareRideAccountDrawer extends StatelessWidget {
               title: const Text('Previous transactions'),
               onTap: () => _open(
                 context,
-                const FareRideHistoryScreen(transactionsOnly: true),
+                const FairRideHistoryScreen(transactionsOnly: true),
               ),
             ),
             const Spacer(),
@@ -73,7 +73,7 @@ class FareRideAccountDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Log out'),
-              onTap: () => fareRideSignOut(context),
+              onTap: () => fairRideSignOut(context),
             ),
           ],
         ),
@@ -82,8 +82,8 @@ class FareRideAccountDrawer extends StatelessWidget {
   }
 }
 
-class FareRideRiderProfileScreen extends StatelessWidget {
-  const FareRideRiderProfileScreen({super.key});
+class FairRideRiderProfileScreen extends StatelessWidget {
+  const FairRideRiderProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +114,7 @@ class FareRideRiderProfileScreen extends StatelessWidget {
                 style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 16),
-              FareRideCard(
+              FairRideCard(
                 child: Column(
                   children: [
                     _AccountDetailRow(icon: Icons.email_outlined, label: 'Email', value: data['email'] ?? ''),
@@ -124,13 +124,13 @@ class FareRideRiderProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              const FareRideSectionTitle('Your travel and payment history'),
+              const FairRideSectionTitle('Your travel and payment history'),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (_) => const FareRideHistoryScreen(transactionsOnly: false),
+                    builder: (_) => const FairRideHistoryScreen(transactionsOnly: false),
                   ),
                 ),
                 icon: const Icon(Icons.route_outlined),
@@ -140,14 +140,14 @@ class FareRideRiderProfileScreen extends StatelessWidget {
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(
-                    builder: (_) => const FareRideHistoryScreen(transactionsOnly: true),
+                    builder: (_) => const FairRideHistoryScreen(transactionsOnly: true),
                   ),
                 ),
                 icon: const Icon(Icons.receipt_long_outlined),
                 label: const Text('Previous transactions'),
               ),
               const SizedBox(height: 16),
-              FareRideHomeInsights(isDriver: false),
+              FairRideHomeInsights(isDriver: false),
             ],
           );
         },
@@ -156,8 +156,8 @@ class FareRideRiderProfileScreen extends StatelessWidget {
   }
 }
 
-class FareRideHistoryScreen extends StatelessWidget {
-  const FareRideHistoryScreen({super.key, required this.transactionsOnly});
+class FairRideHistoryScreen extends StatelessWidget {
+  const FairRideHistoryScreen({super.key, required this.transactionsOnly});
 
   final bool transactionsOnly;
 
@@ -191,7 +191,7 @@ class FareRideHistoryScreen extends StatelessWidget {
             for (final item in items)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: FareRideCard(
+                child: FairRideCard(
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: CircleAvatar(
@@ -216,7 +216,7 @@ class FareRideHistoryScreen extends StatelessWidget {
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => FareRideRideDetailsScreen(rideId: item.rideId),
+                        builder: (_) => FairRideRideDetailsScreen(rideId: item.rideId),
                       ),
                     ),
                   ),
@@ -229,8 +229,8 @@ class FareRideHistoryScreen extends StatelessWidget {
   );
 }
 
-class FareRideHomeInsights extends StatelessWidget {
-  const FareRideHomeInsights({super.key, required this.isDriver});
+class FairRideHomeInsights extends StatelessWidget {
+  const FairRideHomeInsights({super.key, required this.isDriver});
 
   final bool isDriver;
 
@@ -239,12 +239,12 @@ class FareRideHomeInsights extends StatelessWidget {
     stream: RideService.instance.watchHistory(limit: 100),
     builder: (context, snapshot) {
       if (snapshot.hasError) {
-        return const FareRideCard(
+        return const FairRideCard(
           child: Text('Could not load your trip and payment insights.'),
         );
       }
       if (!snapshot.hasData) {
-        return const FareRideCard(
+        return const FairRideCard(
           child: Center(child: CircularProgressIndicator()),
         );
       }
@@ -268,7 +268,7 @@ class FareRideHomeInsights extends StatelessWidget {
           : '${history.length} completed trips · $paid payments confirmed';
       final amountLabel = isDriver ? 'Fares allocated' : 'Confirmed payments';
       final amountValue = isDriver ? allocatedAmount : confirmedAmount;
-      return FareRideCard(
+      return FairRideCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -277,7 +277,7 @@ class FareRideHomeInsights extends StatelessWidget {
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
-            Text(headline, style: const TextStyle(color: FareRideColors.muted)),
+            Text(headline, style: const TextStyle(color: FairRideColors.muted)),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -307,7 +307,7 @@ class FareRideHomeInsights extends StatelessWidget {
                   : isDriver
                       ? 'Amounts show fare allocations from completed rides.'
                       : '$paid of ${history.length} payments confirmed by drivers.',
-              style: const TextStyle(fontSize: 12, color: FareRideColors.muted),
+              style: const TextStyle(fontSize: 12, color: FairRideColors.muted),
             ),
           ],
         ),
@@ -326,16 +326,16 @@ class _InsightMetric extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: FareRideColors.mint,
+      color: FairRideColors.mint,
       borderRadius: BorderRadius.circular(14),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: FareRideColors.greenDark),
+        Icon(icon, size: 18, color: FairRideColors.greenDark),
         const SizedBox(height: 6),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-        Text(label, style: const TextStyle(fontSize: 11, color: FareRideColors.muted)),
+        Text(label, style: const TextStyle(fontSize: 11, color: FairRideColors.muted)),
       ],
     ),
   );
@@ -352,11 +352,11 @@ class _AccountDetailRow extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
       children: [
-        Icon(icon, size: 20, color: FareRideColors.greenDark),
+        Icon(icon, size: 20, color: FairRideColors.greenDark),
         const SizedBox(width: 10),
         SizedBox(
           width: 72,
-          child: Text(label, style: const TextStyle(color: FareRideColors.muted)),
+          child: Text(label, style: const TextStyle(color: FairRideColors.muted)),
         ),
         Expanded(child: Text(value.isEmpty ? 'Not provided' : value)),
       ],

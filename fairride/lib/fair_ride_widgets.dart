@@ -1,7 +1,7 @@
-part of 'fare_ride_screens.dart';
+part of 'fair_ride_screens.dart';
 
-class FareRideBrand extends StatelessWidget {
-  const FareRideBrand({super.key, this.compact = false});
+class FairRideBrand extends StatelessWidget {
+  const FairRideBrand({super.key, this.compact = false});
   final bool compact;
 
   @override
@@ -12,7 +12,7 @@ class FareRideBrand extends StatelessWidget {
         width: compact ? 36 : 44,
         height: compact ? 36 : 44,
         decoration: BoxDecoration(
-          color: FareRideColors.green,
+          color: FairRideColors.green,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(
@@ -23,9 +23,9 @@ class FareRideBrand extends StatelessWidget {
       ),
       const SizedBox(width: 10),
       Text(
-        'FareRide',
+        'FairRide',
         style: TextStyle(
-          color: FareRideColors.ink,
+          color: FairRideColors.ink,
           fontSize: compact ? 20 : 24,
           fontWeight: FontWeight.w800,
           letterSpacing: -.6,
@@ -35,8 +35,8 @@ class FareRideBrand extends StatelessWidget {
   );
 }
 
-class FareRidePrimaryButton extends StatelessWidget {
-  const FareRidePrimaryButton({
+class FairRidePrimaryButton extends StatelessWidget {
+  const FairRidePrimaryButton({
     super.key,
     required this.label,
     required this.onPressed,
@@ -55,7 +55,7 @@ class FareRidePrimaryButton extends StatelessWidget {
       icon: icon == null ? const SizedBox.shrink() : Icon(icon),
       label: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       style: FilledButton.styleFrom(
-        backgroundColor: FareRideColors.green,
+        backgroundColor: FairRideColors.green,
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       ),
@@ -63,8 +63,8 @@ class FareRidePrimaryButton extends StatelessWidget {
   );
 }
 
-class FareRideSectionTitle extends StatelessWidget {
-  const FareRideSectionTitle(this.title, {super.key, this.trailing});
+class FairRideSectionTitle extends StatelessWidget {
+  const FairRideSectionTitle(this.title, {super.key, this.trailing});
   final String title;
   final Widget? trailing;
   @override
@@ -76,7 +76,7 @@ class FareRideSectionTitle extends StatelessWidget {
           style: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w800,
-            color: FareRideColors.ink,
+            color: FairRideColors.ink,
           ),
         ),
       ),
@@ -85,8 +85,8 @@ class FareRideSectionTitle extends StatelessWidget {
   );
 }
 
-class FareRideCard extends StatelessWidget {
-  const FareRideCard({
+class FairRideCard extends StatelessWidget {
+  const FairRideCard({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
@@ -100,7 +100,7 @@ class FareRideCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: FareRideColors.line),
+      border: Border.all(color: FairRideColors.line),
       boxShadow: const [
         BoxShadow(
           color: Color(0x080D352B),
@@ -113,8 +113,8 @@ class FareRideCard extends StatelessWidget {
   );
 }
 
-class FareRidePage extends StatelessWidget {
-  const FareRidePage({
+class FairRidePage extends StatelessWidget {
+  const FairRidePage({
     super.key,
     required this.title,
     required this.child,
@@ -131,7 +131,7 @@ class FareRidePage extends StatelessWidget {
   final String role;
   @override
   Widget build(BuildContext context) => Scaffold(
-    drawer: FareRideAccountDrawer(isDriver: role == 'driver'),
+    drawer: FairRideAccountDrawer(isDriver: role == 'driver'),
     appBar: AppBar(
       leading: showBack
           ? IconButton(
@@ -163,7 +163,7 @@ class FareRidePage extends StatelessWidget {
             ),
           ),
         if (navigationIndex != null)
-          fareRideBottomNav(
+          fairRideBottomNav(
             context,
             selected: navigationIndex!,
             role: role,
@@ -173,8 +173,8 @@ class FareRidePage extends StatelessWidget {
   );
 }
 
-class FareRideField extends StatelessWidget {
-  const FareRideField({
+class FairRideField extends StatelessWidget {
+  const FairRideField({
     super.key,
     required this.label,
     this.hint,
@@ -214,15 +214,15 @@ class FareRideField extends StatelessWidget {
     decoration: InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: icon == null ? null : Icon(icon, color: FareRideColors.muted),
+      prefixIcon: icon == null ? null : Icon(icon, color: FairRideColors.muted),
       prefixText: prefixText,
     ),
   );
 }
 
-/// Recent-value picker that reuses FareRideField's controller and visual style.
-class FareRideSuggestField extends StatefulWidget {
-  const FareRideSuggestField({
+/// Recent-value picker that reuses FairRideField's controller and visual style.
+class FairRideSuggestField extends StatefulWidget {
+  const FairRideSuggestField({
     super.key,
     required this.label,
     required this.controller,
@@ -247,10 +247,10 @@ class FareRideSuggestField extends StatefulWidget {
   final String? Function(String?)? validator;
 
   @override
-  State<FareRideSuggestField> createState() => _FareRideSuggestFieldState();
+  State<FairRideSuggestField> createState() => _FairRideSuggestFieldState();
 }
 
-class _FareRideSuggestFieldState extends State<FareRideSuggestField> {
+class _FairRideSuggestFieldState extends State<FairRideSuggestField> {
   final _focus = FocusNode();
 
   @override
@@ -275,7 +275,7 @@ class _FareRideSuggestFieldState extends State<FareRideSuggestField> {
       widget.onSelected?.call(value);
     },
     fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) =>
-        FareRideField(
+        FairRideField(
           label: widget.label,
           hint: widget.hint,
           controller: controller,
@@ -317,7 +317,7 @@ class _FareRideSuggestFieldState extends State<FareRideSuggestField> {
   );
 }
 
-void fareRideSnack(BuildContext context, String message) {
+void fairRideSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(
@@ -325,22 +325,22 @@ void fareRideSnack(BuildContext context, String message) {
     );
 }
 
-Future<void> fareRideSignOut(BuildContext context) async {
+Future<void> fairRideSignOut(BuildContext context) async {
   await AuthService.instance.signOut();
   if (!context.mounted) return;
   Navigator.pushNamedAndRemoveUntil(
     context,
-    FareRideRoutes.authGate,
+    FairRideRoutes.authGate,
     (_) => false,
   );
 }
 
-String? fareRideRequired(String? value) =>
+String? fairRideRequired(String? value) =>
     (value == null || value.trim().isEmpty)
     ? 'Please fill out this field'
     : null;
 
-Widget fareRideBottomNav(
+Widget fairRideBottomNav(
   BuildContext context, {
   required int selected,
   String role = 'rider',
@@ -349,11 +349,11 @@ Widget fareRideBottomNav(
       onDestinationSelected: (index) {
         if (index == selected) return;
         final route = role == 'driver'
-            ? (index == 0 ? FareRideRoutes.driverDashboard : FareRideRoutes.postRide)
+            ? (index == 0 ? FairRideRoutes.driverDashboard : FairRideRoutes.postRide)
             : switch (index) {
-                0 => FareRideRoutes.riderDashboard,
-                1 => FareRideRoutes.requestRide,
-                _ => FareRideRoutes.fareSplit,
+                0 => FairRideRoutes.riderDashboard,
+                1 => FairRideRoutes.requestRide,
+                _ => FairRideRoutes.fareSplit,
               };
         Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
       },

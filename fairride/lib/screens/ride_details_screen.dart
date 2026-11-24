@@ -1,7 +1,7 @@
-part of '../fare_ride_screens.dart';
+part of '../fair_ride_screens.dart';
 
-class FareRideRideDetailsScreen extends StatelessWidget {
-  const FareRideRideDetailsScreen({super.key, required this.rideId});
+class FairRideRideDetailsScreen extends StatelessWidget {
+  const FairRideRideDetailsScreen({super.key, required this.rideId});
   final String rideId;
 
   @override
@@ -111,7 +111,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                                   Polyline(
                                     points: route.points,
                                     strokeWidth: 4,
-                                    color: FareRideColors.green,
+                                    color: FairRideColors.green,
                                   ),
                                 ],
                               ),
@@ -204,7 +204,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                         'Your estimated share: ${formatRupees(me.fare ?? estimateFares[me.riderId] ?? 0)}',
                       ),
                     const SizedBox(height: 14),
-                    const FareRideSectionTitle('Riders · pickup order'),
+                    const FairRideSectionTitle('Riders · pickup order'),
                     for (var i = 0; i < riders.length; i++)
                       ListTile(
                         leading: CircleAvatar(child: Text('${i + 1}')),
@@ -224,7 +224,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,
-                          FareRideRoutes.fareSplit,
+                          FairRideRoutes.fareSplit,
                           arguments: rideId,
                         ),
                         icon: const Icon(Icons.qr_code),
@@ -235,7 +235,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                       FilledButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,
-                          FareRideRoutes.pickupOrder,
+                          FairRideRoutes.pickupOrder,
                           arguments: rideId,
                         ),
                         icon: const Icon(Icons.manage_accounts),
@@ -245,7 +245,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                       FilledButton.icon(
                         onPressed: () => Navigator.pushNamed(
                           context,
-                          FareRideRoutes.requestRide,
+                          FairRideRoutes.requestRide,
                         ),
                         icon: const Icon(Icons.add),
                         label: const Text('Find and request this ride'),
@@ -260,7 +260,7 @@ class FareRideRideDetailsScreen extends StatelessWidget {
                           try {
                             await RideService.instance.cancelRequest(rideId);
                           } catch (e) {
-                            if (context.mounted) fareRideSnack(context, '$e');
+                            if (context.mounted) fairRideSnack(context, '$e');
                           }
                         },
                         child: const Text('Cancel request'),
@@ -309,10 +309,10 @@ class _RideProgressCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => FareRideCard(
+  Widget build(BuildContext context) => FairRideCard(
     child: Row(
       children: [
-        const Icon(Icons.radio_button_checked, color: FareRideColors.green),
+        const Icon(Icons.radio_button_checked, color: FairRideColors.green),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -320,7 +320,7 @@ class _RideProgressCard extends StatelessWidget {
             children: [
               const Text(
                 'Current ride status',
-                style: TextStyle(color: FareRideColors.muted, fontSize: 12),
+                style: TextStyle(color: FairRideColors.muted, fontSize: 12),
               ),
               Text(_label, style: const TextStyle(fontWeight: FontWeight.w800)),
             ],

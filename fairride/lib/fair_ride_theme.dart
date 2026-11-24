@@ -1,6 +1,6 @@
-part of 'fare_ride_screens.dart';
+part of 'fair_ride_screens.dart';
 
-abstract final class FareRideColors {
+abstract final class FairRideColors {
   static const ink = Color(0xFF172B2A);
   static const muted = Color(0xFF71817E);
   static const green = Color(0xFF16866F);
@@ -11,18 +11,18 @@ abstract final class FareRideColors {
   static const amber = Color(0xFFFFF3D8);
 }
 
-final ThemeData _fareRideTheme = ThemeData(
+final ThemeData _fairRideTheme = ThemeData(
   useMaterial3: true,
-  scaffoldBackgroundColor: FareRideColors.canvas,
+  scaffoldBackgroundColor: FairRideColors.canvas,
   colorScheme: ColorScheme.fromSeed(
-    seedColor: FareRideColors.green,
-    primary: FareRideColors.green,
+    seedColor: FairRideColors.green,
+    primary: FairRideColors.green,
     surface: Colors.white,
   ),
   fontFamily: 'Roboto',
   appBarTheme: const AppBarTheme(
-    backgroundColor: FareRideColors.canvas,
-    foregroundColor: FareRideColors.ink,
+    backgroundColor: FairRideColors.canvas,
+    foregroundColor: FairRideColors.ink,
     elevation: 0,
     centerTitle: false,
   ),
@@ -32,15 +32,15 @@ final ThemeData _fareRideTheme = ThemeData(
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: FareRideColors.line),
+      borderSide: const BorderSide(color: FairRideColors.line),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: FareRideColors.line),
+      borderSide: const BorderSide(color: FairRideColors.line),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: FareRideColors.green, width: 1.5),
+      borderSide: const BorderSide(color: FairRideColors.green, width: 1.5),
     ),
   ),
 );

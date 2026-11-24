@@ -78,7 +78,7 @@ class _PlaceSearchService {
       'lang': 'en',
     });
     final response = await _client
-        .get(uri, headers: {'User-Agent': 'FareRide/1.0'})
+        .get(uri, headers: {'User-Agent': 'FairRide/1.0'})
         .timeout(const Duration(seconds: 12));
     if (response.statusCode != 200) {
       throw Exception('Place search returned ${response.statusCode}.');

@@ -1,5 +1,6 @@
-// FareRide app root, screen routes, and shared screen library.
+// FairRide app root, screen routes, and shared screen library.
 
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -39,8 +40,8 @@ import 'package:intl/intl.dart';
 import 'widgets/location_picker_field.dart';
 import 'logic/fare_calculator.dart';
 
-part 'fare_ride_theme.dart';
-part 'fare_ride_widgets.dart';
+part 'fair_ride_theme.dart';
+part 'fair_ride_widgets.dart';
 part 'screens/landing_screen.dart';
 part 'screens/login_screen.dart';
 part 'screens/driver_signup_screen.dart';
@@ -54,20 +55,20 @@ part 'screens/driver_profile_screen.dart';
 part 'screens/admin_review_screen.dart';
 part 'screens/account_screen.dart';
 
-class FareRideApp extends StatelessWidget {
-  const FareRideApp({super.key});
+class FairRideApp extends StatelessWidget {
+  const FairRideApp({super.key});
 
   @override
   Widget build(BuildContext context) => MaterialApp(
-    title: 'FareRide',
+    title: 'FairRide',
     debugShowCheckedModeBanner: false,
-    theme: _fareRideTheme,
+    theme: _fairRideTheme,
     home: const AuthWrapper(),
-    routes: FareRideRoutes.routes,
+    routes: FairRideRoutes.routes,
   );
 }
 
-abstract final class FareRideRoutes {
+abstract final class FairRideRoutes {
   static const landing = '/';
   static const login = '/login';
   static const driverSignup = '/driver-signup';
@@ -80,16 +81,16 @@ abstract final class FareRideRoutes {
   static const authGate = '/auth-gate';
 
   static Map<String, WidgetBuilder> get routes => {
-    // landing: (_) => const FareRideLandingScreen(),
-    login: (_) => const FareRideLoginScreen(),
+    // landing: (_) => const FairRideLandingScreen(),
+    login: (_) => const FairRideLoginScreen(),
     driverSignup: (_) =>
-        const FareRideLoginScreen(initialRole: 'driver', initialSignup: true),
-    riderDashboard: (_) => const FareRideRiderDashboardScreen(),
-    driverDashboard: (_) => const FareRideDriverDashboardScreen(),
-    postRide: (_) => const FareRidePostRideScreen(),
-    requestRide: (_) => const FareRideRequestRideScreen(),
-    pickupOrder: (_) => const FareRidePickupOrderScreen(),
-    fareSplit: (_) => const FareRideFareSplitScreen(),
+        const FairRideLoginScreen(initialRole: 'driver', initialSignup: true),
+    riderDashboard: (_) => const FairRideRiderDashboardScreen(),
+    driverDashboard: (_) => const FairRideDriverDashboardScreen(),
+    postRide: (_) => const FairRidePostRideScreen(),
+    requestRide: (_) => const FairRideRequestRideScreen(),
+    pickupOrder: (_) => const FairRidePickupOrderScreen(),
+    fareSplit: (_) => const FairRideFareSplitScreen(),
     authGate: (_) => const AuthWrapper(),
   };
 }
