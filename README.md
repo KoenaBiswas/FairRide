@@ -6,9 +6,6 @@ FairRide is a Flutter campus carpool app that helps riders find shared rides and
 
 [Download the FairRide Android debug APK](https://github.com/KoenaBiswas/FairRide/releases/download/v1.0.0-android-debug-2026-11-24/FairRide-android-debug.apk).
 
-## Android debug APK
-
-[Download the FairRide Android debug APK](https://github.com/KoenaBiswas/FairRide/releases/download/v1.0.0-android-debug-2026-11-24/FairRide-android-debug.apk).
 
 ## Problem and idea
 
